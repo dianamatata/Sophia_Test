@@ -16,7 +16,19 @@ chrome_options.add_argument("--headless")  # Run in headless mode
 chrome_options.add_argument("--no-sandbox")  # Optional: avoid some sandboxing issues in certain environments
 chrome_options.add_argument("--disable-dev-shm-usage")  # Optional: solve issues in Docker environments
 
-
+columns_to_keep = [
+    'HGNC gene symbol (ID):', 'HGVS strict genomic (hg38):', 'HGVS Protein:',
+    'HGVS genomic (hg38):', 'pseudo VCF (hg38):', 'Position in transcript:', 'Position / splice site',
+    'Position / domain', 'Position tolerance',
+    'gnomAD exome:', 'gnomAD genome:', 'gnomAD exome (non cancer):',
+    'gnomAD v4 Genome:', 'gnomAD v4 Exome:',
+    'dbSNP rsid:', 'Clinvar Germline:', 'hg38 InterVar:', 'GeneBe:',
+    'CADD phred:', 'MPA score:', 'MPA impact:',
+    'Position / protein','dbscSNV ADA:', 'dbscSNV RF:', 'spliceAI AG:',
+    'spliceAI AL:', 'spliceAI DG:', 'spliceAI DL:', 'AbSplice:', 'SIFT:', 'Polyphen 2 HumDiv:',
+    'Polyphen 2 HumVar:', 'Fathmm:', 'AlphaMissense:', 'REVEL:', 'ClinPred:', 'Meta SVM:', 'Meta LR:',
+    'Mistic:', 'Interpretation', 'Risk', 'LOVD Effect Reported:','LOVD Matches:'
+]
 
 # functions ------------
 def extract_data_from_website(driver):
@@ -80,17 +92,18 @@ driver.get("https://mobidetails.iurc.montp.inserm.fr/MD/api/variant/5/browser/")
 
 # DEBUG -----
 # Read the file and get the variant from line 27
+line_num = 148
 with open(formatted_entries_file, 'r') as f:
     lines = f.readlines()  # Read all lines
-    variant = lines[26].strip()  # Line 27 is index 26 (since indexing starts from 0)
-    print(f"Variant from line 27: {variant}")
+    variant = lines[line_num].strip()  # Line 27 is index 26 (since indexing starts from 0)
+    print(f"Variant from line {line_num}: {variant}")
 # DEBUG -----
 
 # Initialize the iteration counter and tdf1
 tdf1 = pd.DataFrame()
 
 last_processed_line = line_num -1
-iteration = 7
+iteration = 25
 
 # Read the formatted VCF entries from the file
 with open(formatted_entries_file, 'r') as f:
@@ -140,7 +153,37 @@ with open(formatted_entries_file, 'r') as f:
 
         # RUN FUNCTION TO GET DATA
         gene_name, df_var = extract_data_from_website(driver)
-        tdf1 = pd.concat([tdf1, df_var], axis=0, ignore_index=True, sort=False)
+        df_var = df_var.reset_index(drop=True)
+        try:
+            # Try to concatenate tdf1 and df_var directly
+            columns_to_keep_existing = [col for col in columns_to_keep if col in tdf1.columns]
+            tdf1 = tdf1[columns_to_keep_existing]
+            columns_to_keep_existing = [col for col in columns_to_keep if col in df_var.columns]
+            df_var = df_var[columns_to_keep_existing]
+            tdf1 = pd.concat([tdf1, df_var], axis=0, ignore_index=True, sort=False)
+
+        except Exception as e:
+            columns_to_keep_existing = [col for col in columns_to_keep if col in tdf1.columns]
+            tdf1 = tdf1[columns_to_keep_existing]
+            columns_to_keep_existing = [col for col in columns_to_keep if col in df_var.columns]
+            df_var = df_var[columns_to_keep_existing]
+            # tdf1 = tdf1.reset_index(drop=True)
+            # df_var = df_var.reset_index(drop=True)
+
+            # Retry concatenating with the common columns
+            tdf1 = pd.concat([tdf1, df_var], axis=0, ignore_index=True, sort=False)
+
+            # If there are common columns, filter df_var to include only those columns
+            if not common_columns.empty:
+                df_var = df_var[common_columns]
+                # Retry concatenating with the common columns
+                tdf1 = pd.concat([tdf1, df_var], axis=0, ignore_index=True, sort=False)
+            else:
+                # Log an error if no common columns are found
+                with open(log_file_path, 'a') as log_file:
+                    log_file.write(f"[ERROR] No common columns between tdf1 and df_var for gene: {gene_name}\n")
+                    log_file.write(f"[ERROR] Exception message: {str(e)}\n")
+
 
         if line_num % 50 == 0:  # Check if the number of rows is a multiple of 50, to not write all the time
             output_filename = f"{output_mobidetails}_{iteration}.txt"
