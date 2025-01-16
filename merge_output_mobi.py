@@ -15,10 +15,10 @@ columns_to_keep = [
 ]
 
 
-output_mobidetails = '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/output/output_mobidetails'
-output_dir_merged = '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/merged_data'
+output_mobidetails = '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/out_mobi/output_mobidetails'
+output_dir_merged = '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/merged_data_mobi'
 
-iteration_end = 4
+iteration_end = 52
 merged_df = pd.DataFrame()
 
 for iteration in range(1, iteration_end + 1):
@@ -37,14 +37,21 @@ merged_df.to_csv(f"{output_dir_merged}/merged_data.txt", sep='\t', index=False)
 print(f"Merged DataFrame shape: {merged_df.shape}")
 
 # check if some variants are there twice
-print(merged_df['HGVS strict genomic (hg38):'].unique().shape)
-print(merged_df['HGVS strict genomic (hg38):'].shape)
+print(merged_df['HGVS strict genomic (hg38):'].shape) # (2343,)
+print(merged_df['HGVS strict genomic (hg38):'].unique().shape) # (2293,)
 
+# Count the variants/lines in the initial file formatted_entries_file
+formatted_entries_file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/formatted_vcf_entries.txt"
+with open(formatted_entries_file, 'r') as file:
+    line_count = sum(1 for line in file)
 
-# TODO: run again the variants with iteration=52 and observation of the driver
+print(f"formatted_entries_file contains {line_count} lines.")
+# formatted_entries_file contains 2406 lines.
+print(f"Missing variants: {line_count - merged_df['HGVS strict genomic (hg38):'].unique().shape[0]} ")
+# Missing variants: 113
 
-# need to extract and understand failed variants
-# check that all the variants are present - which ones are missing
+# TODO need to extract and understand failed variants
+# TODO check that all the variants are present - which ones are missing
 
 
 
