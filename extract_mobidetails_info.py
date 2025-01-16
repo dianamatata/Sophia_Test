@@ -75,8 +75,8 @@ formatted_entries_file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignmen
 failed_variants_log = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/out_mobi/failed_variants_log.txt"
 
 # for second iteration, once we had some fails with failed_variants_log, was it timeout or was it failure to identify transcript?
-formatted_entries_file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/out_mobi/failed_variants_log_hg38.txt"
-failed_variants_log = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/out_mobi/failed_variants_log2.txt"
+formatted_entries_file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/problem_vcf_variants.txt"
+failed_variants_log = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/out_mobi/failed_variants_log3.txt"
 
 # main ------------------
 
@@ -88,7 +88,7 @@ driver.get("https://mobidetails.iurc.montp.inserm.fr/MD/api/variant/5/browser/")
 
 # DEBUG -----
 # Read the file and get the variant from line 27
-line_num = 148
+line_num = 1
 with open(formatted_entries_file, 'r') as f:
     lines = f.readlines()  # Read all lines
     variant = lines[line_num].strip()  # Line 27 is index 26 (since indexing starts from 0)
@@ -97,8 +97,9 @@ with open(formatted_entries_file, 'r') as f:
 
 # Initialize the iteration counter and tdf1
 tdf1 = pd.DataFrame()
-last_processed_line = 0
-iteration = 1
+
+last_processed_line = 96
+iteration = 54
 # for debug: last_processed_line = line_num -1
 # for debug: iteration = 52
 
@@ -167,6 +168,13 @@ with open(formatted_entries_file, 'r') as f:
             tdf1 = pd.DataFrame() # reinitialize
             iteration += 1
             last_processed_line = line_num
+
+# final save
+iteration += 1
+output_filename = f"{output_mobidetails}_{iteration}.txt"
+print("saving output")
+tdf1.to_csv(output_filename, index=False)
+print(f"Saved to {output_filename}")
 
 # Close the driver
 driver.quit()
