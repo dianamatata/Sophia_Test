@@ -31,8 +31,9 @@ def process_vcf(vcf_data):
     vcf_data['AD_1'] = pd.to_numeric(vcf_data['AD_1'], errors='coerce')
     vcf_data['AD_2'] = pd.to_numeric(vcf_data['AD_2'], errors='coerce')
     vcf_data['freq_ref_allele'] = vcf_data['AD_1'] / (vcf_data['AD_1'] + vcf_data['AD_2'])
+    vcf_data['freq_alt_allele'] = vcf_data['AD_2'] / (vcf_data['AD_1'] + vcf_data['AD_2'])
 
-    vcf_data = vcf_data[['CHROM', 'POS', 'REF', 'ALT', 'DP', 'AD', 'freq_ref_allele', 'DP4']]
+    vcf_data = vcf_data[['CHROM', 'POS', 'REF', 'ALT', 'DP', 'AD', 'freq_ref_allele', 'freq_alt_allele','DP4']]
     return vcf_data
 
 def add_zygosity_column(vcf_data):
@@ -55,7 +56,7 @@ def add_zygosity_column(vcf_data):
 
 # Define file paths
 vcf_file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/patient_variants.vcf"
-vcf_output_file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/patient_variants_AF.csv"
+vcf_output_file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/patient_variants_vcf_df.txt"
 
 # Load VCF
 vcf_data = pd.read_csv(vcf_file, sep='\t', comment='#', header=None)
@@ -70,10 +71,10 @@ vcf_data = add_zygosity_column(vcf_data)
 # DP4=506,0,163,0: 506 reads supporting the reference allele are from the forward strand, and 163 reads supporting the alternate allele are from the forward strand as well (none from the reverse strand).
 
 # add column with hg38 formatting to merge with the other dataframe with mobidetails
-formatted_entries = vcf_data.apply(lambda row: f"hg38:{row[0]}:{row[1]}:{row[3]}:{row[4]}", axis=1)
+formatted_entries = vcf_data.apply(lambda row: f"hg38:{row[0]}:{row[1]}:{row[2]}:{row[3]}", axis=1)
 vcf_data['hg38_vcf_mobidetails'] = formatted_entries
 
 vcf_data.to_csv(vcf_output_file, sep='\t', index=False)
 vcf_data = pd.read_csv(vcf_output_file, sep='\t')
 
-formatted_entries.to_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/formatted_vcf_entries.txt", index=False, header=False)
+formatted_entries.to_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/formatted_vcf_entries.txt", index=False, header=False)
