@@ -26,7 +26,7 @@
 **Input**:
 - Extracted data from `extract_mobidetails_info.py` in `out_mobi/output_mobidetails`.  
 **Output**:
-- `merged_data_mobidetails.txt`: Merged data containing mobidetails information.  
+- `'merged_data_mobidetails.txt'`: Merged data containing mobidetails information.  
 
 ---
 
@@ -132,5 +132,13 @@ By following this workflow, we aim to extract and annotate as much variant data 
 ACMG Criteria
 
 ---
+## Improving perspectives:
+
+To enhance the project, we could consider the following improvements:
+
+- **Integrate GERP RS**: Incorporate GERP (Genomic Evolutionary Rate Profiling) scores to provide insights into the conservation of variants across species.
+- **Sync with gnomAD**: Connect with the gnomAD database to obtain ancestry-specific frequencies and counts for heterozygous and homozygous variants.
+- **Integrate MoBiDiC Prioritization Algorithm**: Leverage the MoBiDiC Prioritization Algorithm (https://github.com/mobidic/MPA) for more robust variant prioritization.
+- **Fix Mobidetails API**: Resolve issues with the Mobidetails API to ensure reliable data extraction and improve overall functionality.
 
  
