@@ -74,7 +74,7 @@ def extract_data_from_website(driver):
 formatted_entries_file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/formatted_vcf_entries.txt"
 failed_variants_log = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/failed_variants_log.txt"
 
-# for second iteration
+# for second iteration, once we had some fails with failed_variants_log, was it timeout or was it failure to identify transcript?
 formatted_entries_file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/failed_variants_log_hg38.txt"
 failed_variants_log = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/failed_variants_log2.txt"
 
