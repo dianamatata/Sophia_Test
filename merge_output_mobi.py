@@ -18,7 +18,7 @@ columns_to_keep = [
 output_mobidetails = '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/out_mobi/output_mobidetails'
 output_dir_merged = '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data'
 
-iteration_end = 52
+iteration_end = 58
 merged_df = pd.DataFrame()
 
 for iteration in range(1, iteration_end + 1):
@@ -32,13 +32,27 @@ for iteration in range(1, iteration_end + 1):
     # Append the current DataFrame to the merged DataFrame
     merged_df = pd.concat([merged_df, df], axis=0, ignore_index=True, sort=False)
     print(merged_df.shape)
+    print(iteration)
 
-merged_df.to_csv(f"{output_dir_merged}/merged_data_mobidetails.txt", sep='\t', index=False)
+print(merged_df['HGVS strict genomic (hg38):'].shape) # (2605,)
+
+# Drop rows where all columns are duplicated
+merged_df_no_duplicates = merged_df.drop_duplicates()
+print(f"Original shape: {merged_df.shape}")
+print(f"New shape after removing duplicates: {merged_df_no_duplicates.shape}")
+
+# View all rows that are duplicates (both first and subsequent occurrences)
+all_duplicates = merged_df[merged_df.duplicated(subset='HGVS strict genomic (hg38):',keep='first')]
+
+# Drop rows where 'HGVS strict genomic (hg38):' are duplicated
+merged_df_no_duplicates2 = merged_df.drop_duplicates(subset='HGVS strict genomic (hg38):', keep='first')
+print(f"Number of unique 'HGVS strict genomic (hg38):' : {merged_df_no_duplicates2.shape[0]}")
+
+# SAVE DATA
+merged_df_no_duplicates2.to_csv(f"{output_dir_merged}/merged_data_mobidetails.txt", sep='\t', index=False)
 print(f"Merged DataFrame shape: {merged_df.shape}")
 
-# check if some variants are there twice
-print(merged_df['HGVS strict genomic (hg38):'].shape) # (2343,)
-print(merged_df['HGVS strict genomic (hg38):'].unique().shape) # (2293,)
+
 
 # Count the variants/lines in the initial file formatted_entries_file
 formatted_entries_file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/formatted_vcf_entries.txt"
@@ -48,7 +62,7 @@ with open(formatted_entries_file, 'r') as file:
 print(f"formatted_entries_file contains {line_count} lines.")
 # formatted_entries_file contains 2406 lines.
 print(f"Missing variants: {line_count - merged_df['HGVS strict genomic (hg38):'].unique().shape[0]} ")
-# Missing variants: 113
+# Missing variants: 27
 
 # TODO need to extract and understand failed variants
 # TODO check that all the variants are present - which ones are missing
