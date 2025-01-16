@@ -16,7 +16,7 @@ columns_to_keep = [
 
 
 output_mobidetails = '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/out_mobi/output_mobidetails'
-output_dir_merged = '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/merged_data_mobi'
+output_dir_merged = '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data'
 
 iteration_end = 52
 merged_df = pd.DataFrame()
@@ -33,7 +33,7 @@ for iteration in range(1, iteration_end + 1):
     merged_df = pd.concat([merged_df, df], axis=0, ignore_index=True, sort=False)
     print(merged_df.shape)
 
-merged_df.to_csv(f"{output_dir_merged}/merged_data.txt", sep='\t', index=False)
+merged_df.to_csv(f"{output_dir_merged}/merged_data_mobidetails.txt", sep='\t', index=False)
 print(f"Merged DataFrame shape: {merged_df.shape}")
 
 # check if some variants are there twice
