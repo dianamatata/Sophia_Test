@@ -4,12 +4,8 @@ import pandas as pd
 # DATA --------------
 
 # mobidetails
-mobi_file = '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/merged_data_mobidetails.txt'
+mobi_file = '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/merged_mobidetails_vcf.txt'
 mobi_data = pd.read_csv(mobi_file, sep='\t')
-
-mobi_data['VCF_formatted'] = mobi_data['pseudo VCF (hg38):'].apply(
-    lambda x: 'hg38:' + x.replace('-', ':')
-)
 
 #OMIM
 omim_file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/omim.txt"
@@ -37,37 +33,44 @@ def concatenate_omim_data(group):
 
 # Merge mobi_subset2 with omim2 based on matching gene names
 def get_omim_data_for_gene(gene_symbol, omim2):
+    # Handle cases where gene_symbol is NaN
+    if pd.isna(gene_symbol):
+        return None, None, None, None, None
+
     # Extract the gene symbol (strip '()' to match omim data gene names)
-    gene_name = gene_symbol.split(' ')[0]
-    match = omim2[omim2['genes'].str.contains(gene_name, case=False)]
+    gene_name = str(gene_symbol).split(' ')[0]  # Ensure gene_symbol is a string
+    match = omim2[omim2['genes'].str.contains(gene_name, case=False, na=False)]  # Handle NaN in 'genes'
     if not match.empty:
         # Return the 'genes' column along with the other relevant data
-        return match.iloc[0]['genes'], match.iloc[0]['phenotypeInheritance_mapped'], match.iloc[0]['phenotype'], match.iloc[0]['geneMimNumber'], match.iloc[0]['phenotypeMimNumber']
+        return match.iloc[0]['genes'], match.iloc[0]['phenotypeInheritance_mapped'], match.iloc[0]['phenotype'], \
+        match.iloc[0]['geneMimNumber'], match.iloc[0]['phenotypeMimNumber']
     else:
         return None, None, None, None, None
 
 # Code to concatenate OMIM data -----------
 
+print(f"merged_data shape: {mobi_data.shape}") # merged_data shape: (2406, 55)
 
 # 1 Group by 'genes' and concatenate the columns into omim2 DataFrame
 omim2 = omim_data.groupby('genes').apply(concatenate_omim_data).apply(pd.Series).reset_index(drop=True)
 omim2.to_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/omim_grouped_by_genes.txt", sep='\t', index=False)
 
 # 2 Apply the function to each gene in mobi_subset2
-mobi_subset2 = mobi_data[['HGNC gene symbol (ID):', 'HGVS strict genomic (hg38):']]
-mobi_subset2[['genes', 'phenotypeInheritance_mapped', 'phenotype', 'geneMimNumber', 'phenotypeMimNumber']] = mobi_subset2['HGNC gene symbol (ID):'].apply(
-    lambda x: pd.Series(get_omim_data_for_gene(x, omim2))
-)
-# Display the updated mobi_subset2 with OMIM data
-mobi_subset2.to_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_genes_with_omim.txt", sep='\t', index=False)
 
-# Then add it to all mobi dataframe
+# test on small mobi
+# mobi_subset2 = mobi_data[['HGNC gene symbol (ID):', 'HGVS strict genomic (hg38):']]
+# mobi_subset2[['genes', 'phenotypeInheritance_mapped', 'phenotype', 'geneMimNumber', 'phenotypeMimNumber']] = mobi_subset2['HGNC gene symbol (ID):'].apply(
+#     lambda x: pd.Series(get_omim_data_for_gene(x, omim2)))
+
 mobi_data[['genes', 'phenotypeInheritance_mapped', 'phenotype', 'geneMimNumber', 'phenotypeMimNumber']] = mobi_data['HGNC gene symbol (ID):'].apply(
-    lambda x: pd.Series(get_omim_data_for_gene(x, omim2))
-)
+    lambda x: pd.Series(get_omim_data_for_gene(x, omim2)))
+print(f"mobi_data shape: {mobi_data.shape}")
 
-# Save
+
+# Save -------------------
+
 mobi_data.to_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_with_omim_genes.txt", sep='\t', index=False)
+
 
 
 # DEBUG
