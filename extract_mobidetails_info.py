@@ -16,6 +16,10 @@ chrome_options.add_argument("--headless")  # Run in headless mode
 chrome_options.add_argument("--no-sandbox")  # Optional: avoid some sandboxing issues in certain environments
 chrome_options.add_argument("--disable-dev-shm-usage")  # Optional: solve issues in Docker environments
 
+# remove headless mode
+# chrome_options = webdriver.ChromeOptions()
+
+
 columns_to_keep = [
     'HGNC gene symbol (ID):', 'HGVS strict genomic (hg38):', 'HGVS Protein:',
     'HGVS genomic (hg38):', 'pseudo VCF (hg38):', 'Position in transcript:', 'Position / splice site',
@@ -68,9 +72,11 @@ def extract_data_from_website(driver):
 
 # File paths ------------------
 formatted_entries_file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/formatted_vcf_entries.txt"
-output_file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/variant_NM_VCF.csv"
-# formatted_entries_file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/test_entries.txt"
 failed_variants_log = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/failed_variants_log.txt"
+
+# for second iteration
+formatted_entries_file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/failed_variants_log_hg38.txt"
+failed_variants_log = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/failed_variants_log2.txt"
 
 # main ------------------
 
@@ -103,12 +109,12 @@ with open(formatted_entries_file, 'r') as f:
 tdf1 = pd.DataFrame()
 
 last_processed_line = line_num -1
-iteration = 25
+last_processed_line= 0
+iteration = 52
 
 # Read the formatted VCF entries from the file
 with open(formatted_entries_file, 'r') as f:
-    # Skip the lines that have already been processed
-    for _ in range(last_processed_line):
+    for _ in range(last_processed_line): # Skip the lines that have already been processed
         next(f)
 
     # Loop through each line (variant) in the file
@@ -124,24 +130,20 @@ with open(formatted_entries_file, 'r') as f:
         search_button = driver.find_element(By.ID, "submit_a")
         search_button.click()
 
-        # maybe we have to pick variant in several transcripts
+        # maybe we have to pick variant in several transcripts, case 2 in case of several transcripts to pick from
         case_1_xpath = "//td[@class='w3-left-align dtr-control' and text()='HGNC gene symbol (ID):']"
         case_2_xpath = "//li[.//em[starts-with(text(), 'NM_')]]"
         try:
-            # Try to find the first case
             WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.XPATH, case_1_xpath)))
         except TimeoutException:
-            # If case 1 fails, try case 2
             try:
                 WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.XPATH, case_2_xpath)))
                 # Extract the full variant name from the <em> tag inside the <li> element
                 variant_element = driver.find_element(By.XPATH, case_2_xpath)
-                # Extract the URL from the onclick attribute
-                onclick_script = variant_element.get_attribute("onclick")
+                onclick_script = variant_element.get_attribute("onclick") # Extract the URL from the onclick attribute
                 # Combine base URL with the relative URL
                 full_url = "https://mobidetails.iurc.montp.inserm.fr" + onclick_script.split("window.open('")[1].split("')")[0]
-                # Navigate to the full URL directly
-                driver.get(full_url)
+                driver.get(full_url) # Navigate to the full URL directly
             except TimeoutException:
                 # Log the failed variant
                 with open(failed_variants_log, 'a') as log_file:
@@ -163,27 +165,10 @@ with open(formatted_entries_file, 'r') as f:
             tdf1 = pd.concat([tdf1, df_var], axis=0, ignore_index=True, sort=False)
 
         except Exception as e:
-            columns_to_keep_existing = [col for col in columns_to_keep if col in tdf1.columns]
-            tdf1 = tdf1[columns_to_keep_existing]
-            columns_to_keep_existing = [col for col in columns_to_keep if col in df_var.columns]
-            df_var = df_var[columns_to_keep_existing]
-            # tdf1 = tdf1.reset_index(drop=True)
-            # df_var = df_var.reset_index(drop=True)
-
-            # Retry concatenating with the common columns
-            tdf1 = pd.concat([tdf1, df_var], axis=0, ignore_index=True, sort=False)
-
-            # If there are common columns, filter df_var to include only those columns
-            if not common_columns.empty:
-                df_var = df_var[common_columns]
-                # Retry concatenating with the common columns
-                tdf1 = pd.concat([tdf1, df_var], axis=0, ignore_index=True, sort=False)
-            else:
-                # Log an error if no common columns are found
-                with open(log_file_path, 'a') as log_file:
-                    log_file.write(f"[ERROR] No common columns between tdf1 and df_var for gene: {gene_name}\n")
-                    log_file.write(f"[ERROR] Exception message: {str(e)}\n")
-
+            with open(failed_variants_log, 'a') as log_file:
+                log_file.write(f"Failed to concatenate variant {variant} on line {line_num}\n")
+            print(f"Variant {variant} failed to concatenate on line {line_num}. Skipping to next.")
+            continue
 
         if line_num % 50 == 0:  # Check if the number of rows is a multiple of 50, to not write all the time
             output_filename = f"{output_mobidetails}_{iteration}.txt"
@@ -195,7 +180,7 @@ with open(formatted_entries_file, 'r') as f:
             with open(last_processed_line_file, 'w') as f:
                 f.write(str(last_processed_line))
 
-
+tdf1.shape
 # Close the driver
 # driver.quit()
 
@@ -203,7 +188,6 @@ with open(formatted_entries_file, 'r') as f:
 output_filename = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/output_mobidetails_2.txt"
 df = pd.read_csv(output_filename)
 print(df.shape)
-# Check the contents of the DataFrame
 print(df.head())
 
 # Close the browser
