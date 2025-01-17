@@ -75,29 +75,16 @@ pb_df = merged_data[merged_data['mobi_data'] == False]
 difference = vcf_data[~vcf_data['hg38_vcf_mobidetails'].isin(mobi_data['hg38_vcf_mobidetails'])]
 print(difference) # [324 rows x 11 columns]
 
+# TODO understand why diff is 324 and before 27 .....
 
 # SAVE DATA
-
 
 # Save the 'hg38_vcf_mobidetails' column from pb_df --------
 pb_df['hg38_vcf_mobidetails'].to_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/problem_vcf_variants.txt", index=False, header=False, sep='\n')
 
 # Save merged_data
 merged_data.to_csv('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/merged_mobidetails_vcf.txt', index=False, sep='\t')
-
 output_file = '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/merged_mobidetails_vcf.txt'
-
-
-
-# Clinvar
-
-# ACMG
-
-# MPA score
-
-# Concatenate OMIM columns ----------------
-
-
 
 
 
