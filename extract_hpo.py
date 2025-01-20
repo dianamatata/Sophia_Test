@@ -52,33 +52,45 @@ for hpo_id in hpo_ids:
             (By.CSS_SELECTOR, '#mat-tab-content-0-1 .associations.gene-association mat-table'))
     )
 
-    # # Extract the gene association table
-    # try:
-    #     table = driver.find_element(By.CSS_SELECTOR, '#mat-tab-content-0-1 .associations.gene-association mat-table')
-    #     rows = table.find_elements(By.TAG_NAME, 'mat-row')
-    #
-    #     # Extract data from the rows
-    #     table_data = []
-    #     for row in rows:
-    #         cells = row.find_elements(By.TAG_NAME, 'mat-cell')
-    #         table_data.append([cell.text for cell in cells])
-    # except Exception as e:
-    #     table_data = []
-    #
-    # # Store the HPO ID, term name, and associated gene data
-    # results.append({'HPO_ID': hpo_id, 'Term_Name': term_name, 'Gene_Associations': table_data})
-    #
-    # # Optional: Sleep to avoid overloading the server
-    # time.sleep(1)
+    # Extract the gene association table
+    try:
+        table = driver.find_element(By.CSS_SELECTOR, '#mat-tab-content-0-1 .associations.gene-association mat-table')
+        rows = table.find_elements(By.TAG_NAME, 'mat-row')
 
-# Create a DataFrame from the results list
+        # Extract data from the rows
+        table_data = []
+        for row in rows:
+            cells = row.find_elements(By.TAG_NAME, 'mat-cell')
+            table_data.append(cells[1].text)
+    except Exception as e:
+        table_data = []
+
+    # Store the HPO ID, term name, and associated gene data
+    results.append({'HPO_ID': hpo_id, 'Term_Name': term_name, 'Gene_Associations': table_data})
+
+    # Optional: Sleep to avoid overloading the server
+    time.sleep(1)
+
 df = pd.DataFrame(results)
-
-# Save the results to a CSV file
 df.to_csv('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/hpo_terms_and_gene_associations.csv', index=False)
+
+
+# or save in json file
+import json
+
+# Save to a JSON file
+with open('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/hpo_terms_and_gene_associations.json', 'w') as json_file:
+    json.dump(results, json_file, indent=4)
+
+# Load the data later
+with open('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/hpo_terms_and_gene_associations.json', 'r') as json_file:
+    loaded_data = json.load(json_file)
+
 
 # Print the results
 print(df)
 
 # Close the driver
 driver.quit()
+
+# check other hpo_file
