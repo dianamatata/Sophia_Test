@@ -41,6 +41,19 @@ cd ensembl-vep
 git checkout release/113
 perl INSTALL.pl
 
+
+# TODO: solve errors .......
+
+#Test Summary Report
+#-------------------
+#./t/Runner.t                                       (Wstat: 65280 Tests: 80 Failed: 0)
+#  Non-zero exit status: 255
+#  Parse errors: No plan found in TAP output
+#Files=42, Tests=1808, 137 wallclock secs ( 0.29 usr  0.16 sys + 124.87 cusr  9.53 csys = 134.85 CPU)
+#Result: FAIL
+#Failed 1/42 test programs. 0/1808 subtests failed.
+
+
 # get Bio::DB::BigFile
 #wget https://github.com/ucscGenomeBrowser/kent/archive/v335_base.tar.gz
 #tar xzf v335_base.tar.gz
