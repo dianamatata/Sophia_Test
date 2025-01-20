@@ -59,6 +59,43 @@
 
 ---
 
+### **7. `get_clinvar_data.sh`**
+**Function**: Get Clinvar data, select a subset of column, format and save
+**Input**:
+**Output**:
+- `data/summary_variants_clinvar.txt`: Formatted Clinvar data
+
+---
+
+### **8. `split_clinvar_per_chr.sh`**
+**Function**:  Split clinvar file per chr to make the search easier
+**Input**: 
+- `data/summary_variants_clinvar.txt`
+**Output**:
+- `data/clinvar_chr/clinvar_${chrom}.txt.gz`
+- 
+---
+
+### **9. `extract_clinvar_data_for_variant.py.py`**
+**Function**:  extract_clinvar_window_around_variant to check if it is a hotspot, extract_clinvar_gene_of_variant
+For ACMG crieria, we need to know for instance if "missenses" are a common mechanism of disease in the gene,
+or if the variant id located in a hotspot
+# TODO implement systematic check in function 
+**Input**: 
+**Output**:
+
+---
+
+### **10. `extract_clinvar_entries.py`**
+**Function**: Take the dataframe with clinvar entries P/LP, and check how many entries are found, to adapt the ACMG
+criteria afterwards
+**Input**: 
+**Output**:
+
+
+
+---
+
 ## Explanation of the implementation
 
 ### Goal 1:
