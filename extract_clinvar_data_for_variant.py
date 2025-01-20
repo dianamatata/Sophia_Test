@@ -109,37 +109,40 @@ def parse_info(info_str, keys_to_extract=None):
 # info_str = ".\\t.\\tALLELEID=2470506;CLNDISDB=MeSH:D030342,MedGen:C0950123;CLNDN=Inborn_genetic_diseases;CLNHGVS=NC_000004.12:g.186708110T>C;CLNREVSTAT=criteria_provided,_single_submitter;CLNSIG=Uncertain_significance;CLNVC=single_nucleotide_variant;CLNVCSO=SO:0001483;GENEINFO=FAT1:2195;MC=SO:0001583|missense_variant;ORIGIN=1\\t2470506\\tMeSH:D030342,MedGen:C0950123\\tNC_000004.12:g.186708110T>C\\tUncertain_significance\\tsingle_nucleotide_variant\\tSO:0001483\\tFAT1:2195\\tSO:0001583|missense_variant"
 # keys_to_extract = ['CLNVC', 'CLNSIG', 'MC']
 
-def format_data_after_extraction(df,keys_to_extract =None):
-
+def format_data_after_extraction(df, keys_to_extract=None):
     if keys_to_extract is None:
         keys_to_extract = ['CLNVC', 'CLNSIG', 'MC', 'GENEINFO']
 
-    parsed_info = df['INFO'].dropna().apply(
-        lambda x: parse_info(x, keys_to_extract))
+    # Parse 'INFO' column into individual components
+    parsed_info = df['INFO'].dropna().apply(lambda x: parse_info(x, keys_to_extract))
 
-    parsed_info_df = pd.DataFrame(parsed_info.tolist())  # convert to dataframe
+    # Convert parsed_info into a DataFrame and combine with original DataFrame
+    parsed_info_df = pd.DataFrame(parsed_info.tolist())
+    df = pd.concat([df.reset_index(drop=True), parsed_info_df], axis=1)
 
-    # Combine the original DataFrame with the expanded INFO DataFrame
-    df = pd.concat([clinvar_subset_data.reset_index(drop=True), parsed_info_df], axis=1)
-    df['MC'] = df['MC'].str.split('|').str[1].str.split(',').str[0]
-    df['GENEINFO'] = df['GENEINFO'].str.split(':').str[0]
+    # Ensure 'MC' and 'GENEINFO' columns are strings before applying .str.split()
+    df['MC'] = df['MC'].astype(str).str.split('|').str[1].str.split(',').str[0]
+    df['GENEINFO'] = df['GENEINFO'].astype(str).str.split(':').str[0]
 
-    df = df[['CHROM', 'POS', 'ID', 'REF', 'ALT',
-                                               'CLNVC', 'CLNSIG', 'MC', 'GENEINFO']]
+    # Select and return relevant columns
+    df = df[['CHROM', 'POS', 'ID', 'REF', 'ALT', 'CLNVC', 'CLNSIG', 'MC', 'GENEINFO']]
+
     return df
 
-def extract_clinvar_window_around_variant(clinvar_dir, chrom, pos, window=None, keys_to_extract =None):
-
+def extract_clinvar_window_around_variant(clinvar_dir, chrom, pos, window=None, keys_to_extract=None):
     if window is None:
         window = 50
     if keys_to_extract is None:
         keys_to_extract = ['CLNVC', 'CLNSIG', 'MC', 'GENEINFO']
 
     clinvar_file = f"{clinvar_dir}clinvar_{chrom}.txt.gz"
+    print("Loading file:", clinvar_file)
     clinvar_subset_data = clinvar_variant_context(clinvar_file, chrom, pos, window)
+    # Convert data to string types before applying further processing
+    clinvar_subset_data = clinvar_subset_data.apply(lambda x: x.astype(str) if x.dtype != 'O' else x)
     clinvar_subset_data = format_data_after_extraction(clinvar_subset_data)
-
     return clinvar_subset_data
+
 
 def extract_clinvar_gene_of_variant(clinvar_dir, chrom, gene_name=None, keys_to_extract =None):
 
@@ -148,7 +151,8 @@ def extract_clinvar_gene_of_variant(clinvar_dir, chrom, gene_name=None, keys_to_
 
     clinvar_file = f"{clinvar_dir}clinvar_{chrom}.txt.gz"
     clinvar_subset_data = clinvar_variant_gene(clinvar_file, gene_name)
-    clinvar_subset_data = format_data_after_extraction(clinvar_subset_data)
+    if not clinvar_subset_data.empty:
+        clinvar_subset_data = format_data_after_extraction(clinvar_subset_data)
 
     return clinvar_subset_data
 
@@ -158,7 +162,7 @@ def extract_clinvar_gene_of_variant(clinvar_dir, chrom, gene_name=None, keys_to_
 
 clinvar_dir = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/clinvar_chr/"
 
-clinvar_window_df = extract_clinvar_window_around_variant(clinvar_dir, chrom=4, pos=186709159, window = 50)
+clinvar_window_df = extract_clinvar_window_around_variant(clinvar_dir, chrom=4, pos=186709159, window=50)
 clinvar_gene_df = extract_clinvar_gene_of_variant(clinvar_dir, chrom=1, gene_name="SAMD11")
 
 
@@ -201,7 +205,7 @@ df = clinvar_window_df
 # Define the conditions
 
 condition_missense = df['MC'] == 'missense_variant'
-condition_LoF = df['MC'].isin(['nonsense','frameshift_variant','splice_donor_variant','splice_acceptor_variant'])
+condition_LoF = df['MC'].isin(['nonsense','frameshift_variant','splice_donor_variant','splice_acceptor_variant','stop_lost'])
 condition_inframe = df['MC'].isin(['inframe_insertion','inframe_deletion'])
 
 condition_pathogenic = df['CLNSIG'].isin(['Pathogenic', 'Likely_pathogenic']) # 'Conflicting_interpretations_of_pathogenicity'?
@@ -211,6 +215,9 @@ condition_benign = df['CLNSIG'].isin(['Likely_benign' 'Benign']) # 'Conflicting_
 missense_count = condition_missense.sum()
 missense_pathogenic_count = (condition_missense & condition_pathogenic).sum()
 pathogenic_count = condition_pathogenic.sum()
+
+LOF_pathogenic_count = (condition_LoF & condition_pathogenic).sum()
+
 
 # Output the results
 print(f'Number of missense variants: {missense_count}')
