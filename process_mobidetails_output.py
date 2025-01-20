@@ -91,8 +91,6 @@ def add_splice_column(df):
 
 
 
-
-
 # PHASE 2: keep cleaning the data ------------------
 
 mobi_data = pd.read_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_with_omim_genes.txt", sep='\t')
@@ -175,6 +173,20 @@ print(subset_clinvar_pathogenic)
 #TODO for all the rows of subset_clinvar_pathogenic, i want to count the number of entries in clinvar
 
 
+#
+
+# phenotype_may_occur
+mobi_data['phenotype_may_occur'] = mobi_data.apply(
+    lambda row: 'Yes' if (
+        (row['phenotypeInheritance_mapped'] == 'AR' and row['Zygocity'] == 2) or
+        (row['phenotypeInheritance_mapped'] == 'AD' and row['Zygocity'] == 1)
+    ) else 'No', axis=1
+)
+count_values = mobi_data['phenotype_may_occur'].value_counts()
+print(count_values)
+true_count = count_values.get("Yes", 0)
+false_count = count_values.get("No", 0)
+print(f"True: {true_count}, False: {false_count}")
 
 
 # ACMG
