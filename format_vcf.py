@@ -39,13 +39,13 @@ def process_vcf(vcf_data):
 def add_zygosity_column(vcf_data):
     # Define the conditions for Zygocity
     conditions = [
-        (vcf_data['freq_ref_allele'] >= 0.66),  # Zygocity = 2
+        (vcf_data['freq_ref_allele'] >= 0.66),  # Zygocity = 0
         (vcf_data['freq_ref_allele'] >= 0.33) & (vcf_data['freq_ref_allele'] < 0.66),  # Zygocity = 1
-        (vcf_data['freq_ref_allele'] <= 0.33)  # Zygocity = 0
+        (vcf_data['freq_ref_allele'] <= 0.33)  # Zygocity = 2
     ]
 
     # Define the corresponding Zygocity values
-    values = [2, 1, 0]
+    values = [0, 1, 2]
 
     # Create the new 'Zygocity' column using numpy's select function
     vcf_data['Zygocity'] = np.select(conditions, values, default=np.nan)
