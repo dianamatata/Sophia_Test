@@ -66,7 +66,6 @@ print(mobi_data['Splice_prediction'].value_counts())
 mobi_data = calculate_pvs1(mobi_data)
 mobi_data["PVS1"].value_counts()
 
-# Todo check for known mechanism of disease
 def apply_extract_clinvar_gene(da, clinvar_dir):
     # Initialize an empty list to store results
     clinvar_gene_dfs = []
@@ -121,10 +120,29 @@ def process_LoF_pathogenic_counts(mobi_data):
     return mobi_data
 
 
+mobi_data.shape()
+mobi_data = process_LoF_pathogenic_counts(mobi_data)
+mobi_data['LOF_pathogenic_count'].value_counts()
 
-mobi_data_updated = process_LoF_pathogenic_counts(mobi_data)
 
-mobi_data_updated['LOF_pathogenic_count'].value_counts()
+# PM2 -------------------
+# we do not have the gnomad coverage ...
+# For dominant genes (including X-Linked and AD/AR) we check that the allele count is less than 5.
+#  For recessive genes (AR): the rule will trigger if the homozygous allele count is less than 2.
+#  Alternatively the rule also checks whether the allele frequency is less than 0.0001.
+
+def assign_pm2(df, gnomad_col):
+    df["PM2"] = 0
+    df[gnomad_col] = pd.to_numeric(df[gnomad_col], errors='coerce')  # Convert to numeric, set invalid parsing as NaN
+    df.loc[(df[gnomad_col] < 0.0001), "PM2"] = 2
+    df.loc[(df[gnomad_col] == "No match in gnomADv4 Genome"), "PM2"] = 2
+    return df
+
+mobi_data = assign_pm2(mobi_data,'gnomAD v4 Exome:')
+
+mobi_data.columns
+mobi_data.shape
+mobi_data.to_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_omim_splice_clinvarentries.txt", index=False, sep='\t')
 # is_common_mechanism_of_disease if mobi_data_updated['LOF_pathogenic_count']>2
 # If at least two distinct LOF variants for the gene are classified as pathogenic/likely pathogenic, this suggests a common mechanism of disease.
 # TODO: Cross-Check with GnomAD:  Validate this against GnomAD gene constraints by checking the observed/expected LOF ratio (LOF_OE). A value below 0.7555 further supports a strong LOF constraint for the gene.
@@ -173,17 +191,6 @@ print(mobi_data['Clinvar Germline:'].unique())
         # using a region of 25 base-pairs on either side of the variant, the rule checks that there are at least 4 pathogenic variants (only using missense and inframe-indel variants)
     # functional domain reported by UniProt, at least 2 pathogenic clinically reported missense/in-frame variants in domain
 
-# PM2 -------------------
-# we do not have the gnomad coverage ...
-# For dominant genes (including X-Linked and AD/AR) we check that the allele count is less than 5.
-#  For recessive genes (AR): the rule will trigger if the homozygous allele count is less than 2.
-#  Alternatively the rule also checks whether the allele frequency is less than 0.0001.
-
-def assign_pm2(df, gnomad_col):
-    df["PM2"] = 0
-    df.loc[(df[gnomad_col] < 0.0001), "PM2"] = 2
-    df.loc[(df[gnomad_col] == "No match in gnomADv4 Genome"), "PM2"] = 2
-    return df
 
 # PM4 -------------------
 
@@ -207,9 +214,7 @@ if df["PVS1"]!=0, df["PM4"]=0
 df["PP2"]=0
 
 # PP3 -------------------
-
-# Variant is predicted splicing: scSNV-ADA = 0.966933 is between 0.957813 and 0.999322, and LOF in gene PDE4DIP is known to cause disease (gnomAD Loss-of-Function Observed/Expected = 0.681 is less than 0.755), furthermore CADD = 26.2 is between 25.6 and 28.8 ⇒ supporting pathogenic.
-# very strong
+# Multiple lines of computational evidence support a deleterious effect on the gene or gene product (conservation, evolutionary, splicing impact, etc.) (Pathogenic, Supporting)# very strong
 df["PP3"]=0
 # Rule PP3 is disabled if either rule PVS1 or PM4 are triggered, in order to avoid double-counting similar evidence.
 
