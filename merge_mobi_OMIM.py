@@ -39,13 +39,17 @@ def get_omim_data_for_gene(gene_symbol, omim2):
 
     # Extract the gene symbol (strip '()' to match omim data gene names)
     gene_name = str(gene_symbol).split(' ')[0]  # Ensure gene_symbol is a string
-    match = omim2[omim2['genes'].str.contains(gene_name, case=False, na=False)]  # Handle NaN in 'genes'
+    match = omim2[omim2['genes'].str.contains(rf"\b{gene_name}\b", case=False, na=False)]
+
+
     if not match.empty:
         # Return the 'genes' column along with the other relevant data
         return match.iloc[0]['genes'], match.iloc[0]['phenotypeInheritance_mapped'], match.iloc[0]['phenotype'], \
         match.iloc[0]['geneMimNumber'], match.iloc[0]['phenotypeMimNumber']
     else:
         return None, None, None, None, None
+
+
 
 # Code to concatenate OMIM data -----------
 
@@ -62,7 +66,9 @@ omim2.to_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/omim_
 # mobi_subset2[['genes', 'phenotypeInheritance_mapped', 'phenotype', 'geneMimNumber', 'phenotypeMimNumber']] = mobi_subset2['HGNC gene symbol (ID):'].apply(
 #     lambda x: pd.Series(get_omim_data_for_gene(x, omim2)))
 
-mobi_data[['genes', 'phenotypeInheritance_mapped', 'phenotype', 'geneMimNumber', 'phenotypeMimNumber']] = mobi_data['HGNC gene symbol (ID):'].apply(
+omim2 = pd.read_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/omim_grouped_by_genes.txt", sep='\t')
+
+mobi_data[['genes', 'phenotypeInheritance_mapped', 'phenotype', 'geneMimNumber', 'phenotypeMimNumber']] = mobi_data['HGNC gene'].apply(
     lambda x: pd.Series(get_omim_data_for_gene(x, omim2)))
 print(f"mobi_data shape: {mobi_data.shape}")
 
@@ -70,7 +76,7 @@ print(f"mobi_data shape: {mobi_data.shape}")
 # Save -------------------
 
 mobi_data.to_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_with_omim_genes.txt", sep='\t', index=False)
-
+mobi_data = pd.read_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_with_omim_genes.txt", sep='\t')
 
 
 # DEBUG
