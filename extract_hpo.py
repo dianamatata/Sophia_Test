@@ -93,4 +93,4 @@ print(df)
 # Close the driver
 driver.quit()
 
-# check other hpo_file
+df[['HPO_ID', 'Term_Name']].to_csv('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/hpo_summary.txt', index=False, sep='\t')
