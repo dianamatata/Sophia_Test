@@ -7,6 +7,8 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+import json
+
 
 # Set up Chrome options
 options = Options()
@@ -72,18 +74,16 @@ for hpo_id in hpo_ids:
     time.sleep(1)
 
 df = pd.DataFrame(results)
-df.to_csv('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/hpo_terms_and_gene_associations.csv', index=False)
+df.to_csv('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/hpo_terms_and_gene_associations.csv', index=False)
 
 
-# or save in json file
-import json
-
+# or save in json file ------
 # Save to a JSON file
-with open('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/hpo_terms_and_gene_associations.json', 'w') as json_file:
+with open('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/hpo_terms_and_gene_associations.json', 'w') as json_file:
     json.dump(results, json_file, indent=4)
 
 # Load the data later
-with open('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/hpo_terms_and_gene_associations.json', 'r') as json_file:
+with open('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/hpo_terms_and_gene_associations.json', 'r') as json_file:
     loaded_data = json.load(json_file)
 
 
