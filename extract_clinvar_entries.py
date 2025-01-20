@@ -73,15 +73,23 @@ for index, row_df in subset_clinvar_pathogenic.iterrows():
     print(classification_dict)
     classification_dict_str = ', '.join([f"{key}: {value}" for key, value in classification_dict.items()])
 
-    subset_clinvar_pathogenic.loc[index, 'CliVar entries'] = classification_dict_str
+    subset_clinvar_pathogenic.loc[index, 'Clinvar_entries'] = classification_dict_str
 
 driver.quit()
 
 
+# subset_clinvar_pathogenic.rename(columns={'CliVar entries': 'Clinvar_entries'}, inplace=True)
+
+subset_clinvar_pathogenic.to_csv('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/subset_clinvar_pathogenic.txt', index=True, sep='\t')
+subset_clinvar_pathogenic = pd.read_csv(
+    '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/subset_clinvar_pathogenic.txt',
+    sep='\t',
+    index_col=0  # This makes the first column the index
+)
 
 # incorporate it in mobi_data
-subset_clinvar_pathogenic['CliVar entries']
-mobi_data['CliVar entries'] = ""
+subset_clinvar_pathogenic['Clinvar_entries']
+mobi_data['Clinvar_entries'] = ""
 # Step 2: Incorporate the processed results back into mobi_data
 mobi_data.loc[subset_clinvar_pathogenic.index, 'Clinvar_entries'] = subset_clinvar_pathogenic['Clinvar_entries']
 
@@ -89,6 +97,7 @@ mobi_data.loc[subset_clinvar_pathogenic.index, 'Clinvar_entries'] = subset_clinv
 
 
 print(mobi_data.shape) # (2406, 69)
+print(mobi_data['Clinvar_entries'].value_counts())
 
 # save data -----------
 mobi_data.to_csv('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_omim_splice_clinvarentries.txt', index=False, sep='\t')
