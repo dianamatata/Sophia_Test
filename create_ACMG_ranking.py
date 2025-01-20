@@ -1,6 +1,7 @@
 # libraries -------------
 
 import pandas as pd
+from extract_clinvar_data_for_variant import extract_clinvar_window_around_variant, extract_clinvar_gene_of_variant
 import re
 
 # Define Germline classes and rules -------------
@@ -34,24 +35,9 @@ def classify_germline_class(points):
 # DATA  ----------------
 
 # MOBI data
-mobi_file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_with_omim_genes.txt"
-mobi_data = pd.read_csv(mobi_file, sep='\t')
-mobi_data.head()
-
-
-# TODO get df
-df.head()
-# from process_mobidetails_output.py
-
-# Example usage:
-points = 7  # Example points value
-classification = classify_germline_class(points)
-print(f"The classification for {points} points is: {classification}")
-Germline_Rules['Very Strong']
-
-# Null variant (frame-shift) in gene GJB2, not predicted to cause NMD. Loss-of-function is a known mechanism of disease (gene has 99 reported pathogenic LOF variants). The truncated region contains 173 pathogenic variants. It removes 75.33% of the protein.
-# todo: add NMD - we need to know how many exons in the protein and also how far from end of exon it is if it is the last one
-# todo: removes % of protein
+mobi_data = pd.read_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_omim_splice_clinvarentries.txt", sep='\t')
+mobi_data.head(3)
+# print(mobi_data['Clinvar_entries'].value_counts())
 
 # PVS1 -----------------------
 # nonsense variant
@@ -63,31 +49,7 @@ Germline_Rules['Very Strong']
 #    -The gene statistics: if at least 2 LOF variants in this gene have been reliably reported as pathogenic.
 #    -GnomAD gene constraints LOF Observed/Expected is less than 0.7555.
 
-def is_common_mechanism_of_disease(clinvar_data, gene, gnomad_constraints):
-# TODO write with clinbvar data
-    # Filter ClinVar for the given gene and relevant variant types
-    relevant_variants = clinvar_data[
-        (clinvar_data['gene'] == gene) &
-        (clinvar_data['variant_type'].isin(['Frameshift', 'Nonsense', 'Splice site'])) &
-        (clinvar_data['clinical_significance'].isin(['Pathogenic', 'Likely pathogenic']))
-        ]
-
-    # Count distinct LOF variants
-    lof_variant_count = relevant_variants['variant_id'].nunique()
-
-    # Check if LOF variants are >= 2
-    if lof_variant_count >= 2:
-        return True
-
-    # # Check GnomAD LOF constraint
-    # lof_oe = gnomad_constraints.get(gene, float('inf'))
-    # if lof_oe < 0.7555:
-    #     return True
-
-    return False
-
-
-def calculate_pvs1(df, lof_statistics, gnomad_constraints):
+def calculate_pvs1(df):
     df["PVS1"] = 0  # Initialize PVS1 column
 
     for index, row in df.iterrows():
@@ -96,18 +58,101 @@ def calculate_pvs1(df, lof_statistics, gnomad_constraints):
         # Check for splice site prediction greater than 0.75
         elif row.get('Splice_prediction', 0) > 0.75:
             df.at[index, "PVS1"] = 8
-
-        # Check for known mechanism of disease
-        # elif is_known_mechanism_of_disease(
-        #         gene=row.get('gene'),
-            # TODO: for each gene, count the number of LOF (Frameshift, Nonsense, or Splice) variants with pathogenic or likely pathogenic annotations.
-            # If at least two distinct LOF variants for the gene are classified as pathogenic/likely pathogenic, this suggests a common mechanism of disease.
-            # TODO: Cross-Check with GnomAD:
-            # Validate this against GnomAD gene constraints by checking the observed/expected LOF ratio (LOF_OE). A value below 0.7555 further supports a strong LOF constraint for the gene.
-        # ):
-            df.at[index, "PVS1"] = 8
-
     return df
+
+
+print(mobi_data['variant_type'].value_counts())
+print(mobi_data['Splice_prediction'].value_counts())
+mobi_data = calculate_pvs1(mobi_data)
+mobi_data["PVS1"].value_counts()
+
+# Todo check for known mechanism of disease
+def apply_extract_clinvar_gene(da, clinvar_dir):
+    # Initialize an empty list to store results
+    clinvar_gene_dfs = []
+
+    # Iterate over each row in da
+    for index, row in da.iterrows():
+        chrom = row['CHROM']  # Extract chromosome
+        gene_name = row['HGNC gene']  # Extract gene name
+        clinvar_gene_df = extract_clinvar_gene_of_variant(clinvar_dir, chrom=chrom, gene_name=gene_name)
+        clinvar_gene_dfs.append(clinvar_gene_df)
+    clinvar_gene_combined_df = pd.concat(clinvar_gene_dfs, ignore_index=True)
+
+    return clinvar_gene_combined_df
+
+
+def count_LoF_pathogenic(df):
+    condition_LoF = df['MC'].isin(
+        ['nonsense', 'frameshift_variant', 'splice_donor_variant', 'splice_acceptor_variant', 'stop_lost'])
+    condition_pathogenic = df['CLNSIG'].isin(['Pathogenic', 'Likely_pathogenic'])
+    LOF_pathogenic_count = int((condition_LoF & condition_pathogenic).sum())
+
+    return LOF_pathogenic_count
+
+
+def process_LoF_pathogenic_counts(mobi_data):
+    clinvar_dir = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/clinvar_chr/"
+    # Filter the rows where PVS1 == 8
+    filtered_data = mobi_data[mobi_data['PVS1'] == 8]
+    da = filtered_data[['CHROM', 'POS', 'HGNC gene', 'variant_type', 'Splice_prediction', 'PVS1']]
+
+    # Extract clinvar info
+    clinvar_gene_combined_df = apply_extract_clinvar_gene(da, clinvar_dir)
+
+    # Initialize the 'LOF_pathogenic_count' column in da
+    da['LOF_pathogenic_count'] = ""
+
+    # Loop through each unique gene in the 'HGNC gene' column
+    for gene_name in da['HGNC gene'].unique():
+        # Filter the DataFrame for the rows containing the current gene in 'GENEINFO'
+        filtered_data = clinvar_gene_combined_df[
+            clinvar_gene_combined_df['GENEINFO'].str.contains(gene_name, case=False, na=False)]
+
+        # Apply the count_LoF_pathogenic function to the filtered data
+        LOF_pathogenic_count = count_LoF_pathogenic(filtered_data)
+
+        # Add the LOF_pathogenic_count to each row that matches the current gene in da
+        da.loc[da['HGNC gene'] == gene_name, 'LOF_pathogenic_count'] = LOF_pathogenic_count
+
+    # Update the original mobi_data with the LOF_pathogenic_count column from da
+    mobi_data.loc[da.index, 'LOF_pathogenic_count'] = da['LOF_pathogenic_count']
+
+    return mobi_data
+
+
+
+mobi_data_updated = process_LoF_pathogenic_counts(mobi_data)
+
+mobi_data_updated['LOF_pathogenic_count'].value_counts()
+# is_common_mechanism_of_disease if mobi_data_updated['LOF_pathogenic_count']>2
+# If at least two distinct LOF variants for the gene are classified as pathogenic/likely pathogenic, this suggests a common mechanism of disease.
+# TODO: Cross-Check with GnomAD:  Validate this against GnomAD gene constraints by checking the observed/expected LOF ratio (LOF_OE). A value below 0.7555 further supports a strong LOF constraint for the gene.
+
+
+
+
+
+clinvar_gene_df = extract_clinvar_gene_of_variant(clinvar_dir, chrom=1, gene_name="SAMD11")
+
+
+
+
+# Null variant (frame-shift) in gene GJB2, not predicted to cause NMD. Loss-of-function is a known mechanism of disease (gene has 99 reported pathogenic LOF variants). The truncated region contains 173 pathogenic variants. It removes 75.33% of the protein.
+# todo: add NMD - we need to know how many exons in the protein and also how far from end of exon it is if it is the last one
+# todo: removes % of protein
+
+
+
+
+clinvar_gene_df = extract_clinvar_gene_of_variant(clinvar_dir, chrom=1, gene_name="SAMD11")
+
+
+
+
+
+
+
 
 # PS1 -------------------
 # Same amino acid change as a previously established pathogenic variant regardless of nucleotide change.
