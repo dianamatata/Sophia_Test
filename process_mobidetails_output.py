@@ -89,12 +89,46 @@ def add_splice_column(df):
                                                     else (0.2 if row['Distance from splice site'] < 3 else 0), axis=1)
     return df
 
+# Define a function to simplify the Clinvar Germline column
+def simplify_clinvar(value):
+    if isinstance(value, str):  # Check if the value is a string
+        if 'Conflicting_classifications_of_pathogenicity' in value:
+            return 'Conflicting_classifications_of_pathogenicity'
+        elif 'No match in Clinvar' in value or 'not_provided' in value:
+            return 'NA'
+        if 'Likely_benign|other' in value:
+            return 'Likely_benign'
+    return value  # Return original value for non-string or NaN entries
 
+
+def add_zygosity_column(vcf_data):
+    # Define the conditions for Zygocity
+    conditions = [
+        (vcf_data['freq_ref_allele'] >= 0.66),  # Zygocity = 0
+        (vcf_data['freq_ref_allele'] >= 0.33) & (vcf_data['freq_ref_allele'] < 0.66),  # Zygocity = 1
+        (vcf_data['freq_ref_allele'] <= 0.33)  # Zygocity = 2
+    ]
+
+    # Define the corresponding Zygocity values
+    values = [0, 1, 2]
+
+    # Create the new 'Zygocity' column using numpy's select function
+    vcf_data['Zygocity'] = np.select(conditions, values, default=np.nan)
+
+    return vcf_data
+
+# mobi_data['phenotype_may_occur'] = mobi_data.apply(
+#     lambda row: 'unknown' if pd.isna(row['phenotypeInheritance_mapped']) else
+#                 ('Yes' if (
+#                     ('AR' in str(row['phenotypeInheritance_mapped']).upper() and row['Zygocity'] == 2) or
+#                     ('AD' in str(row['phenotypeInheritance_mapped']).upper() and row['Zygocity'] == 1)
+#                 ) else 'No'),
+#     axis=1
+# )
 
 # PHASE 2: keep cleaning the data ------------------
 
 mobi_data = pd.read_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_with_omim_genes.txt", sep='\t')
-
 print(mobi_data.shape) #(2406, 60)
 
 # Rename the specified columns
@@ -143,69 +177,85 @@ mobi_data = mobi_data[['CHROM', 'POS', 'REF', 'ALT', 'DP', 'AD', 'freq_ref_allel
        'genes', 'phenotypeInheritance_mapped', 'phenotype', 'geneMimNumber', 'phenotypeMimNumber']]
 
 
-# save data -----------
-mobi_data.to_csv('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_omim_splice.txt', index=False, sep='\t')
-mobi_data = pd.read_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_omim_splice.txt", sep='\t')
-# mobi_data2 = mobi_data
-
-
-# Clinvar
+# Clinvar ----------
 mobi_data_clinvar_info = mobi_data[['CHROM', 'POS', 'HGNC gene', 'dbSNP rsid:','Clinvar Germline:']]
-mobi_data['HGNC gene'] = mobi_data['HGNC gene'].str.extract(r'([A-Za-z0-9]+)').fillna('')
-
-print(mobi_data_clinvar_info['Clinvar Germline:'].unique())
+# print(mobi_data_clinvar_info['Clinvar Germline:'].unique())
 
 # Count occurrences of each unique value in 'Clinvar Germline:' and sort by count
-clinvar_counts = mobi_data_clinvar_info['Clinvar Germline:'].value_counts().reset_index()
+clinvar_counts = mobi_data['Clinvar Germline:'].value_counts().reset_index()
 clinvar_counts = clinvar_counts.sort_values(by='Clinvar Germline:', ascending=False)
 print(clinvar_counts)
 
-# subset_clinvar = mobi_data_clinvar_info[mobi_data_clinvar_info['Clinvar Germline:'].str.contains(r'pathogenic|Pathogenic', case=False, na=False)]
-
-# Filter the rows where 'Clinvar Germline:' contains 'pathogenic' or 'Pathogenic', but exclude conflicting terms
-subset_clinvar_pathogenic = mobi_data_clinvar_info[
-    mobi_data_clinvar_info['Clinvar Germline:'].str.contains(r'pathogenic|Pathogenic', case=False, na=False) &
-    ~mobi_data_clinvar_info['Clinvar Germline:'].str.contains(r'conflicting|benign', case=False, na=False)
-]
-
-print(subset_clinvar_pathogenic)
-
-#TODO for all the rows of subset_clinvar_pathogenic, i want to count the number of entries in clinvar
-
-
-#
+# Apply the function to create a new simplified column
+mobi_data['simplified_clinvar'] = mobi_data['Clinvar Germline:'].apply(simplify_clinvar)
+clinvar_counts = mobi_data['simplified_clinvar'].value_counts().reset_index()
+clinvar_counts = clinvar_counts.sort_values(by='simplified_clinvar', ascending=False)
+print(clinvar_counts)
 
 # phenotype_may_occur
-mobi_data['phenotype_may_occur'] = mobi_data.apply(
-    lambda row: 'Yes' if (
-        (row['phenotypeInheritance_mapped'] == 'AR' and row['Zygocity'] == 2) or
-        (row['phenotypeInheritance_mapped'] == 'AD' and row['Zygocity'] == 1)
-    ) else 'No', axis=1
-)
+mobi_data = add_zygosity_column(mobi_data)
+
+
+
+
 count_values = mobi_data['phenotype_may_occur'].value_counts()
 print(count_values)
 true_count = count_values.get("Yes", 0)
 false_count = count_values.get("No", 0)
 print(f"True: {true_count}, False: {false_count}")
 
+print(mobi_data.shape) # (2406, 67)
+
+# save data -----------
+mobi_data.to_csv('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_omim_splice.txt', index=False, sep='\t')
+mobi_data = pd.read_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_omim_splice.txt", sep='\t')
+mobi_data.columns
+# Run extract_clinvar_entries to get other column 'Clinvar_entries'
+non_empty_clinvar_entries = mobi_data[mobi_data['Clinvar_entries'] != ""]
+
+# Print the filtered rows
+print(mobi_data[mobi_data['Clinvar_entries'] != ""])
+
+
+
+# GET ONLY INTERESTING COLUMNS ---------
+
+mobi_data['to_check'].value_counts()
+mobi_data = mobi_data.drop(columns=["to_check"])
+
+mobi_to_check = mobi_data[mobi_data['to_check'] != ""]
+mobi_to_check = mobi_to_check.reset_index(drop=True)
+print(mobi_to_check)
+
+mobi_to_check.to_csv('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_to_check.csv', index=False)
+
+
+
+
+mobi_data = pd.read_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_omim_splice_clinvarentries.txt", sep='\t')
+mobi_data.to_csv('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_omim_splice_clinvarentries1.tsv', sep='\t', index=False)
+
+
+
+
+
+
+
+
+
+# mobi_data2 = mobi_data
+# temp save
+# mobi_data.to_csv('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_temp.txt', index=False, sep='\t')
+
+
+
+#
+
+
 
 # ACMG
 
 # MPA score
-
-# HPO
-hpo_file = '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/hpo_terms_and_gene_associations.csv'
-# hpo_data = pd.read_csv(hpo_file, sep='\t')
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -213,23 +263,6 @@ hpo_file = '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/hpo_terms_an
 
 
 # not working :
-df['criteria'] = df['hg38 InterVar:'].str.replace(r"with the following criteria:\\n\\n.*", "", regex=True)
+mobi_data['criteria'] = mobi_data['hg38 InterVar:'].str.replace(r"with the following criteria:\\n\\n.*", "", regex=True)
 df['criteria'] = df['criteria'].str.replace(r"\\n", "").str.replace(r"\n", "")
-# def extract_ACMG(row):
-#     if pd.isna(row):  # Check for NaN
-#         return row  # If NaN, return it as is
-#     else:
-#         row = row.replace("with the following criteria:\\n\\n", "")
-#         row = row.replace("\\n", "")
-#         print(row)
-#         return row
-#
-# df['criteria'] = df['hg38 InterVar:'].apply(extract_ACMG)
-# df['criteria']
 
-# var="Likely pathogenic with the following criteria:\\n\\n  PM1\\n  PM2\\n  PP3\\n  PP5"
-# parts = var.split("with the following criteria:\\n\\n", 1)
-# result = parts[0] + parts[-1]
-# result = "".join(result.split("\\n"))
-
-# TODO: then check the missing rows or VCF,
