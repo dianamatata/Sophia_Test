@@ -28,6 +28,10 @@
 **Output**:
 - `'merged_data_mobidetails.txt'`: Merged data containing mobidetails information.  
 
+TO DO need to extract and understand failed variants
+
+TO DO check that all the variants are present - which ones are missing
+
 ---
 
 ### **4. [create_working_df.py](create_working_df.py) **
@@ -57,6 +61,8 @@
 **Output**:
 - `mobi_data_with_omim_genes.txt`: Final merged file containing both mobidetails and OMIM data.  
 
+TO DO rerun and check if some OMIM data is missing
+
 ---
 
 ### **7. [get_clinvar_data.sh](get_clinvar_data.sh) **
@@ -67,16 +73,26 @@
 
 ---
 
-### **8. `split_clinvar_per_chr.sh`**
-**Function**:  Split clinvar file per chr to make the search easier
+
+### **8. [split_clinvar_per_chr.sh](split_clinvar_per_chr.sh)**
+**Function**:  
+- extract window of variants around a given: 
 **Input**: 
-- `data/summary_variants_clinvar.txt`
+- clinvar_directory, chromosome, position
 **Output**:
-- `data/clinvar_chr/clinvar_${chrom}.txt.gz`
+- clinvar_subset_data
+
+**Function**:
+- extract_clinvar_gene_of_variant
+**Input**: 
+- clinvar_directory, chromosome, gene name
+- **Output**:
+- clinvar_subset_data
+
 - 
 ---
 
-### **9. `extract_clinvar_data_for_variant.py.py`**
+### **9. [extract_clinvar_data_for_variant.py](extract_clinvar_data_for_variant.py)**
 **Function**:  extract_clinvar_window_around_variant to check if it is a hotspot, extract_clinvar_gene_of_variant
 For ACMG crieria, we need to know for instance if "missenses" are a common mechanism of disease in the gene,
 or if the variant id located in a hotspot
@@ -92,7 +108,24 @@ criteria afterwards
 **Input**: 
 **Output**:
 
+---
+### **11. [extract_hpo.py](extract_hpo.py)**
+**Function**: for each hpo term in '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/patient_phenotype.tsv', 
+it browses the website 'https://hpo.jax.org/browse/term/{hpo_id}' to extract the term name and all the gene-associations
+**Input**: 
+**Output**:
+- '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/hpo_summary.txt' with ['HPO_ID', 'Term_Name']
+- '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/hpo_terms_and_gene_associations.csv' with ['HPO_ID', 'Term_Name', 'Gene_Associations':]
 
+The code is not inside a function and needs to be run as it is.
+---
+
+### **12. [check_gene_in_hpo.py](check_gene_in_hpo.py) **
+**Function**: get_hpo_terms_from_gene look up if gene name is associated to any hpo terms of the patient
+**Input**: gene, hpo_data= '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/hpo_terms_and_gene_associations.csv'
+**Output**: associated_hpo_dict in which the hpo terms are provided in the form of a dictionnary: {'HP:0000486': 'Strabismus ', 'HP:0002119': 'Ventriculomegaly '}
+
+TO DO implement this function to the mobi_data dataframe, right now it is run on the side for specific genes of interest.
 
 ---
 
@@ -196,6 +229,8 @@ To enhance the project, we could consider the following improvements:
 #Failed 1/42 test programs. 0/1808 subtests failed.
 - **Integrate GERP RS**: Incorporate GERP (Genomic Evolutionary Rate Profiling) scores to provide insights into the conservation of variants across species.
 - **Sync with gnomAD**: Connect with the gnomAD database to obtain ancestry-specific frequencies and counts for heterozygous and homozygous variants.
+- **Integrate GTEx expression data**: GTEx data enables us to understand in which tissue the gene is expressed. If there is no OMIM phenotype associated, it can help understand the gene product
+- **Integrate GenCC**: sometimes, OMIM data is not complete, and GenCC is a good option to consider
 - **Integrate MoBiDiC Prioritization Algorithm**: Leverage the MoBiDiC Prioritization Algorithm (https://github.com/mobidic/MPA) for more robust variant prioritization.
 - **Integrate pLoF and pLI**: from gnomAD in gene page: retrieve pLoF (Probability of Loss of Function), pLI (Probability of being Loss-of-function Intolerant) and o/e (Observed/Expected ratio).
 if pLI close to 0 suggest the gene tolerates LoF mutations well, if pLI close to 1,  the gene is highly intolerant to LOF.
