@@ -2,8 +2,10 @@
 # Load necessary libraries and data  -----------------------
 library(ggplot2)
 library(dplyr)
+library(tidyr)
 
-file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_temp.txt"
+
+file = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_omim_splice_clinvarentries.txt"
 mobi_data <- read.table(file, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
 
 # plot MPA -----------------------
@@ -32,7 +34,8 @@ bin_counts <- mobi_data %>%
   summarise(count = n(), .groups = "drop")
 
 # Assign colors based on bin value
-bin_counts$color <- ifelse(bin_counts$bin %in% c("8", "9", "10"), "red", "blue")
+bin_counts$color <- ifelse(bin_counts$bin %in% c("8", "9", "10"), "red", 
+                           ifelse(is.na(bin_counts$bin), "grey", "blue"))
 
 # Create the plot with color conditionality
 plot <- ggplot(bin_counts, aes(x = bin, y = count, fill = color)) +
@@ -150,4 +153,83 @@ plot4 <- ggplot(clinvar_group_df_filtered, aes(x = simplified_clinvar_group, y =
 
 
 ggsave("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/plots/Clinvar_histogram_simplified.png", plot = plot4, width = 8, height = 6)
+
+
+# plot "gnomAD.v4.Genome."  ------------------
+mobi_data$gnomAD.v4.Genome.
+mobi_data$gnomAD_value <- ifelse(mobi_data$gnomAD.genome. == "No match in gnomAD genome", 0, mobi_data$gnomAD.v4.Genome.)
+# gnomAD.genome.
+
+# ggplot(mobi_data, aes(x = gnomAD_value)) +
+#   geom_histogram(binwidth = 0.01, fill = "skyblue", color = "black") +
+#   labs(title = "Distribution of gnomAD.genome.", 
+#        x = "gnomAD.genome.", 
+#        y = "Frequency") +
+#   theme_minimal()
+
+distrib_gnomad_freq <- ggplot(mobi_data, aes(x = gnomAD.v4.Genome.)) +
+  geom_histogram(binwidth = 0.01, fill = "skyblue", color = "black") +
+  labs(title = "Distribution of gnomAD.v4.Genome", 
+       x = "gnomAD.v4.Genome", 
+       y = "Frequency") +
+  geom_vline(xintercept = 0.0001, color = "red", linetype = "dashed", size = 1) +  # Add vertical line at x = 0.0001
+  theme_minimal()
+
+ggsave("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/plots/gnomadfreq.png", plot = distrib_gnomad_freq, width = 8, height = 6)
+
+
+# If gnomAD.v4.Genome is numeric and you want a log-transformed histogram
+distrib_gnomad_freq2 <- ggplot(mobi_data, aes(x = gnomAD.v4.Genome.)) +
+  geom_histogram(binwidth = 0.05, fill = "skyblue", color = "black") +
+  scale_x_log10() +  # Apply log10 transformation to the x-axis
+  labs(title = "Log-Distribution of gnomAD.v4.Genome", 
+       x = "gnomAD.v4.Genome (log scale)", 
+       y = "Frequency") +
+  geom_vline(xintercept = 0.0001, color = "red", linetype = "dashed", size = 1) +  # Add vertical line at x = 0.0001
+  theme_minimal()
+
+ggsave("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/plots/gnomadfreq_log10.png", plot = distrib_gnomad_freq2, width = 8, height = 6)
+
+
+
+# Plot pvs1 --------
+# Filter data where PVS1 is different from 0
+mobi_data$LOF_binned <- cut(mobi_data$LOF_pathogenic_count,
+                            breaks = c(-Inf, 0, 1, 50, 100, Inf),
+                            labels = c("inf", "0", "2-50", ">50",">100"),
+                            right = FALSE)
+
+# Filter data where PVS1 is not 0
+filtered_data <- mobi_data[mobi_data$PVS1 != 0, ]
+
+# Create the plot
+variant_count <- dim(filtered_data)[1]
+
+LOF <- ggplot(filtered_data, aes(x = LOF_binned)) +
+  geom_bar(fill = "skyblue", color = "black") +
+  labs(title = paste("Distribution of LOF_pathogenic_count in", variant_count, "variants that are LOF"), 
+       x = "LOF_pathogenic_count", 
+       y = "Frequency") +
+  theme_minimal()
+
+ggsave("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/plots/LOF.png", plot = LOF, width = 8, height = 6)
+
+
+
+# variant type -------
+table(mobi_data$variant_type)
+filtered_data <- mobi_data[mobi_data$variant_type != "", ]
+
+
+variant_typeplot <- ggplot(filtered_data, aes(x = variant_type)) +
+  geom_bar(fill = "skyblue", color = "black") +
+  geom_text(stat='count', aes(label=..count..), vjust=-0.5) +  # Add count on top of bars
+  labs(title = "Distribution of Variant Types",
+       x = "Variant Type",
+       y = "Count") +
+  theme_minimal()
+
+ggsave("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/plots/variant_type.png", plot = variant_typeplot, width = 8, height = 6)
+
+
 
