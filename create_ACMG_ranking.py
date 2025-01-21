@@ -31,40 +31,11 @@ def classify_germline_class(points):
     else:
         return 'B'
 
-
-# DATA  ----------------
-
-# MOBI data
-mobi_data = pd.read_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_omim_splice_clinvarentries.txt", sep='\t')
-mobi_data.head(3)
-# print(mobi_data['Clinvar_entries'].value_counts())
-
 # PVS1 -----------------------
-# nonsense variant
-# frameshift variant
-# exon deletion variant
-# intronic variant within ±2 bases of the transcript
-# splice site start loss variant
+# nonsense variant, frameshift variant, exon deletion variant, intronic variant within ±2 bases of the transcript, splice site start loss variant
 # LOF is a “Known Mechanism of Disease” from either:
 #    -The gene statistics: if at least 2 LOF variants in this gene have been reliably reported as pathogenic.
 #    -GnomAD gene constraints LOF Observed/Expected is less than 0.7555.
-
-def calculate_pvs1(df):
-    df["PVS1"] = 0  # Initialize PVS1 column
-
-    for index, row in df.iterrows():
-        if row['variant_type'] in ['Frameshift', 'Nonsense']:
-            df.at[index, "PVS1"] = 8
-        # Check for splice site prediction greater than 0.75
-        elif row.get('Splice_prediction', 0) > 0.75:
-            df.at[index, "PVS1"] = 8
-    return df
-
-
-print(mobi_data['variant_type'].value_counts())
-print(mobi_data['Splice_prediction'].value_counts())
-mobi_data = calculate_pvs1(mobi_data)
-mobi_data["PVS1"].value_counts()
 
 def apply_extract_clinvar_gene(da, clinvar_dir):
     # Initialize an empty list to store results
@@ -80,7 +51,6 @@ def apply_extract_clinvar_gene(da, clinvar_dir):
 
     return clinvar_gene_combined_df
 
-
 def count_LoF_pathogenic(df):
     condition_LoF = df['MC'].isin(
         ['nonsense', 'frameshift_variant', 'splice_donor_variant', 'splice_acceptor_variant', 'stop_lost'])
@@ -88,7 +58,6 @@ def count_LoF_pathogenic(df):
     LOF_pathogenic_count = int((condition_LoF & condition_pathogenic).sum())
 
     return LOF_pathogenic_count
-
 
 def process_LoF_pathogenic_counts(mobi_data):
     clinvar_dir = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/clinvar_chr/"
@@ -116,14 +85,20 @@ def process_LoF_pathogenic_counts(mobi_data):
 
     # Update the original mobi_data with the LOF_pathogenic_count column from da
     mobi_data.loc[da.index, 'LOF_pathogenic_count'] = da['LOF_pathogenic_count']
+    mobi_data.loc[(mobi_data['LOF_pathogenic_count'] < 2) & (pd.notna(mobi_data['LOF_pathogenic_count'])), 'PVS1'] = 4
 
     return mobi_data
 
+def calculate_pvs1(df):
+    df["PVS1"] = 0  # Initialize PVS1 column
 
-mobi_data.shape()
-mobi_data = process_LoF_pathogenic_counts(mobi_data)
-mobi_data['LOF_pathogenic_count'].value_counts()
-
+    for index, row in df.iterrows():
+        if row['variant_type'] in ['Frameshift', 'Nonsense']:
+            df.at[index, "PVS1"] = 8
+        # Check for splice site prediction greater than 0.75
+        elif row.get('Splice_prediction', 0) > 0.75:
+            df.at[index, "PVS1"] = 8
+    return df
 
 # PM2 -------------------
 # we do not have the gnomad coverage ...
@@ -133,28 +108,173 @@ mobi_data['LOF_pathogenic_count'].value_counts()
 
 def assign_pm2(df, gnomad_col):
     df["PM2"] = 0
-    df[gnomad_col] = pd.to_numeric(df[gnomad_col], errors='coerce')  # Convert to numeric, set invalid parsing as NaN
+    # First handle the string case where gnomad_col has "No match in gnomADv4 Genome"
+    df.loc[df[gnomad_col] == "No match in gnomADv4 Genome", "PM2"] = 2
+    # Now, convert the remaining values to numeric, coercing invalid values to NaN
+    df[gnomad_col] = pd.to_numeric(df[gnomad_col], errors='coerce')
+    df.loc[(df[gnomad_col] < 0.0001), "PM2"] = 1
+    # Handle the numeric values less than 0.0001
     df.loc[(df[gnomad_col] < 0.0001), "PM2"] = 2
-    df.loc[(df[gnomad_col] == "No match in gnomADv4 Genome"), "PM2"] = 2
     return df
 
-mobi_data = assign_pm2(mobi_data,'gnomAD v4 Exome:')
 
-mobi_data.columns
-mobi_data.shape
-mobi_data.to_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_omim_splice_clinvarentries.txt", index=False, sep='\t')
-# is_common_mechanism_of_disease if mobi_data_updated['LOF_pathogenic_count']>2
+# PS1 -------------------
+# Same amino acid change as a previously established pathogenic variant regardless of nucleotide change.
+# chrom=4
+# pos=186708867
+def apply_PS1(da):
+    clinvar_dir = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/clinvar_chr/"
+    da['PS1'] = ""
+    # Ensure CHROM and POS are numeric
+    da['CHROM'] = da['CHROM'].apply(lambda x: pd.to_numeric(x, errors='coerce') if x not in ['X', 'Y'] else x)
+    da['POS'] = pd.to_numeric(da['POS'], errors='coerce')
+
+    # Iterate over each row in da
+    # Iterate over each row in da
+    for index, row in da.iterrows():
+        # Apply changes only if 'MPA impact:' contains "missense"
+        if pd.notna(row['MPA impact:']) and "missense" in row['MPA impact:'].lower():
+            chrom = row['CHROM']  # Extract chromosome
+            pos = int(row['POS'])  # Extract gene name
+            # print(f"Chromosome: {chrom}, Position: {pos}")
+
+            # Extract clinvar data around the variant
+            clinvar_window_df = extract_clinvar_window_around_variant(clinvar_dir, chrom=chrom, pos=pos, window=5)
+
+            # Check if the dataframe is not empty
+            if not clinvar_window_df.empty:
+                # Find duplicates for the specific chrom and pos
+                duplicates = clinvar_window_df[
+                    (clinvar_window_df['CHROM'] == chrom) &
+                    (clinvar_window_df['POS'] == pos) &
+                    clinvar_window_df.duplicated(subset=['CHROM', 'POS'], keep=False)
+                    ]
+
+                # If there are duplicates, concatenate the MC values into a string and assign to PS1
+                if not duplicates.empty:
+                    da.loc[index, 'PS1'] = \
+                    duplicates.groupby(['CHROM', 'POS'])['MC'].transform(lambda x: ','.join(x)).iloc[0]
+
+    return da
+
+mobi_data2 = apply_PS1(mobi_data)
+
+# filter data in mobi
+def update_mobi_data(row):
+
+    # Initialize default values
+    to_keep = ""  # Default value for to_keep
+    comments = ""
+
+    # Check if zygocity = 0
+    if row['Zygocity'] == 0:
+        to_keep = 0
+        comments = "zygocity = 0; "
+
+    if row['Zygocity'] == 2:
+        to_keep = 1
+        comments = "homozygous; "
+
+    # Check if PM2 = 0
+    if row['PM2'] == 0:
+        to_keep = 0
+        comments += "too freq; "
+
+    # Check if simplified_clinvar contains certain values
+    if row['simplified_clinvar'] in ['Benign', 'Likely_benign',
+                                     'Benign/Likely_benign',
+                                     'Conflicting_classifications_of_pathogenicity']:
+        to_keep = 0
+        comments += "benign; "
+
+    # Check if Splice_prediction = 1.0 and PM2 is not 0
+    if row['Splice_prediction'] == 1.0 and row['PM2'] != 0:
+        to_keep = 1
+        comments += "splicing; "
+
+    if row['Splice_prediction'] < 0.3:
+        comments += "no splicing; "
+
+    # Check if MPA score > 7 and PM2 is not 0
+    if row['MPA score:'] > 7 and row['PM2'] != 0:
+        to_keep = 1
+        comments += "MPA high; "
+
+    # Check MPA impact conditions
+    if row['MPA impact:'] == 'Low splice':
+        to_keep = 0
+        comments += "low splice MPA; "
+
+    elif row['MPA impact:'] == 'Clinvar pathogenic':
+        to_keep = 1
+        comments += "clinvar pathogenic; "
+
+    # Check if CADD phred > 23 and PM2 is not 0
+    if row['CADD phred:'] > 23 and row['PM2'] != 0:
+        to_keep = 1
+        comments += "CADD high; "
+
+    # Check if PVS1 = 8 and LOF_pathogenic_count < 2
+    if row['PVS1'] == 8 and row['LOF_pathogenic_count'] < 2:
+        to_keep = 0.5
+        comments += "LoF NOT a known mechanism of disease in this gene; "
+
+    if row['PVS1'] == 8 and pd.notna(row['LOF_pathogenic_count']) and row['LOF_pathogenic_count'] >= 2:
+        to_keep = 1
+        comments += "LoF is a known mechanism of disease in this gene; "
+
+    # Remove trailing semicolon and space if present
+    comments = comments.rstrip("; ")
+
+    # Return updated values as a tuple
+    return pd.Series([to_keep, comments], index=['to_keep', 'comments'])
+
+
+# DATA  ----------------
+
+# MOBI data
+mobi_data = pd.read_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_omim_splice_clinvarentries.txt", sep='\t')
+mobi_data = mobi_data.drop(columns=["to_check"])
+
+
+# get PVS1
+mobi_data = calculate_pvs1(mobi_data)
 # If at least two distinct LOF variants for the gene are classified as pathogenic/likely pathogenic, this suggests a common mechanism of disease.
+mobi_data = process_LoF_pathogenic_counts(mobi_data)
+mobi_data.loc[(mobi_data['LOF_pathogenic_count'] < 2) & (pd.notna(mobi_data['LOF_pathogenic_count'])), 'PVS1'] = 4
+print(type(mobi_data['LOF_pathogenic_count']))
+
+# get "PM2"
+mobi_data = assign_pm2(mobi_data,'gnomAD v4 Genome:')
+numeric_columns = ['Splice_prediction', 'MPA score:', 'CADD phred:', 'LOF_pathogenic_count']
+for col in numeric_columns:
+    mobi_data[col] = pd.to_numeric(mobi_data[col], errors='coerce')
+mobi_data[['to_keep', 'comments']] = mobi_data.apply(update_mobi_data, axis=1)
+
+# get PS1
+mobi_data2 = apply_PS1(mobi_data)
+
+
+
+mobi_data.to_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_omim_splice_clinvarentries.txt", index=False, sep='\t')
+mobi_data.to_csv('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_omim_splice_clinvarentries1.tsv', sep='\t', index=False)
+
+
+# mobi_data["PVS1"].value_counts()
+# mobi_data['LOF_pathogenic_count'].value_counts()
+# print(mobi_data['Clinvar_entries'].value_counts())
+# print(mobi_data['variant_type'].value_counts())
+# print(mobi_data['Splice_prediction'].value_counts())
+# mobi_data2['PS1'].unique() # empty
+
+
+# mobi_data.columns
+# mobi_data.shape
+
 # TODO: Cross-Check with GnomAD:  Validate this against GnomAD gene constraints by checking the observed/expected LOF ratio (LOF_OE). A value below 0.7555 further supports a strong LOF constraint for the gene.
 
-
-
-
-
+# Apply the function to each row
 clinvar_gene_df = extract_clinvar_gene_of_variant(clinvar_dir, chrom=1, gene_name="SAMD11")
-
-
-
 
 # Null variant (frame-shift) in gene GJB2, not predicted to cause NMD. Loss-of-function is a known mechanism of disease (gene has 99 reported pathogenic LOF variants). The truncated region contains 173 pathogenic variants. It removes 75.33% of the protein.
 # todo: add NMD - we need to know how many exons in the protein and also how far from end of exon it is if it is the last one
@@ -162,27 +282,17 @@ clinvar_gene_df = extract_clinvar_gene_of_variant(clinvar_dir, chrom=1, gene_nam
 
 
 
-
-clinvar_gene_df = extract_clinvar_gene_of_variant(clinvar_dir, chrom=1, gene_name="SAMD11")
-
-
-
-
-
-
-
-
-# PS1 -------------------
-# Same amino acid change as a previously established pathogenic variant regardless of nucleotide change.
 # TODO: Use a mapping tool (e.g., VEP, Ensembl, or similar tools) to annotate the variant at the protein level.
 # TODO: include info from Clinvar to check, and also https://www.ncbi.nlm.nih.gov/research/litvar2/
+clinvar_window_df = extract_clinvar_window_around_variant(clinvar_dir, chrom=4, pos=186709159, window=5)
+duplicates = clinvar_window_df[clinvar_window_df.duplicated(subset=['CHROM', 'POS'], keep=False)]
+print(duplicates)
+
 # is there another variant in clinvar in same AA? ( we do not have the AA...
 
 # PS3 -------------------
 # Well-established in vitro or in vivo functional studies supportive of a damaging effect on the gene or gene product. (Pathogenic, Strong)
-# TODO need to include literature from Clinvar, Pubmed, are there functional studies? id drug response in clinvar column, we can activate PS3
-mobi_data
-print(mobi_data['Clinvar Germline:'].unique())
+#  need to include literature from Clinvar, Pubmed, are there functional studies? id drug response in clinvar column, we can activate PS3
 
 # PM1 -------------------
 # Located in a mutational hot spot and/or critical and well-established functional domain (e.g., active site of an enzyme) without benign variation. (Pathogenic, Moderate)
@@ -190,6 +300,7 @@ print(mobi_data['Clinvar Germline:'].unique())
     # check how many variants in hotspot
         # using a region of 25 base-pairs on either side of the variant, the rule checks that there are at least 4 pathogenic variants (only using missense and inframe-indel variants)
     # functional domain reported by UniProt, at least 2 pathogenic clinically reported missense/in-frame variants in domain
+# TODO
 
 
 # PM4 -------------------
