@@ -44,8 +44,16 @@ def get_omim_data_for_gene(gene_symbol, omim2):
 
     if not match.empty:
         # Return the 'genes' column along with the other relevant data
-        return match.iloc[0]['genes'], match.iloc[0]['phenotypeInheritance_mapped'], match.iloc[0]['phenotype'], \
-        match.iloc[0]['geneMimNumber'], match.iloc[0]['phenotypeMimNumber']
+        # Concatenate the values for each column
+        genes = " / ".join(match['genes'].dropna().astype(str))
+        phenotypeInheritance_mapped = " / ".join(match['phenotypeInheritance_mapped'].dropna().astype(str))
+        phenotype = " / ".join(match['phenotype'].dropna().astype(str))
+        geneMimNumber = " / ".join(match['geneMimNumber'].dropna().astype(str))
+        phenotypeMimNumber = " / ".join(match['phenotypeMimNumber'].dropna().astype(str))
+
+        # Return the concatenated results
+        return genes, phenotypeInheritance_mapped, phenotype, geneMimNumber, phenotypeMimNumber
+
     else:
         return None, None, None, None, None
 
@@ -61,10 +69,6 @@ omim2.to_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/omim_
 
 # 2 Apply the function to each gene in mobi_subset2
 
-# test on small mobi
-# mobi_subset2 = mobi_data[['HGNC gene symbol (ID):', 'HGVS strict genomic (hg38):']]
-# mobi_subset2[['genes', 'phenotypeInheritance_mapped', 'phenotype', 'geneMimNumber', 'phenotypeMimNumber']] = mobi_subset2['HGNC gene symbol (ID):'].apply(
-#     lambda x: pd.Series(get_omim_data_for_gene(x, omim2)))
 
 omim2 = pd.read_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/omim_grouped_by_genes.txt", sep='\t')
 
@@ -72,6 +76,12 @@ mobi_data[['genes', 'phenotypeInheritance_mapped', 'phenotype', 'geneMimNumber',
     lambda x: pd.Series(get_omim_data_for_gene(x, omim2)))
 print(f"mobi_data shape: {mobi_data.shape}")
 
+# check omim2 works
+gene_name = "PSAP"
+pattern = rf'\b{gene_name}\b'
+filtered_rows = omim2[omim2['genes'].str.contains(pattern, regex=True, na=False)]
+get_omim_data_for_gene(gene_name, omim2)
+# TODO it is not considering the several OMIM rows
 
 # Save -------------------
 
