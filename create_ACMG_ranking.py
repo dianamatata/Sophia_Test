@@ -300,7 +300,47 @@ print(duplicates)
     # check how many variants in hotspot
         # using a region of 25 base-pairs on either side of the variant, the rule checks that there are at least 4 pathogenic variants (only using missense and inframe-indel variants)
     # functional domain reported by UniProt, at least 2 pathogenic clinically reported missense/in-frame variants in domain
-# TODO
+
+def filter_PM1_mutational_hotspot(clinvar_dir, chrom, pos, window=25):
+
+    clinvar_subset_data = extract_clinvar_window_around_variant(clinvar_dir, chrom=chrom, pos=pos, window=window)
+
+    if clinvar_subset_data.empty:
+        print("No data available for the given chrom and pos.")
+        return None  # Or return an empty DataFrame or handle as needed
+
+    clinvar_subset_data['PM1']=""
+
+    # Apply filtering criteria
+    clinvar_subset_data = clinvar_subset_data[
+        clinvar_subset_data['CLNSIG'].str.contains('pathogenic', case=False, na=False) &
+        ~clinvar_subset_data['CLNSIG'].str.contains('conflicting', case=False, na=False)
+        ]
+
+    # Check if the filtered data has more than 3 rows and update the 'PM1' column if necessary
+    if clinvar_subset_data.shape[0] > 3:
+        print("PM1, Located in a mutational hot spot")
+        clinvar_subset_data['PM1'] = 2  # Set PM1 to 2 for these rows
+
+    # Process MobiData
+    mobi_data['CHROM'] = mobi_data['CHROM'].astype(str)
+    variant = mobi_data[(mobi_data['CHROM'] == str(chrom)) & (mobi_data['POS'] == int(pos))]
+
+    if not variant['Position / domain'].str.contains("Not in a UNIPROT defined domain", case=False, na=False).any():
+        print("PM1, Located in a UNIPROT defined domain")
+        # You can either add to `clinvar_subset_data_filtered` here if needed, or handle it separately.
+        clinvar_subset_data['PM1'] = 2  # Set PM1 to 2 for these rows
+
+    return clinvar_subset_data
+
+
+# Example usage
+clinvar_dir = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/clinvar_chr/"
+chrom = "1"  # Example chromosome
+pos = 123456  # Example position
+filtered_data = filter_PM1_mutational_hotspot(clinvar_dir, chrom, pos)
+
+# TODO incorporate in pipeline
 
 
 # PM4 -------------------
@@ -314,8 +354,7 @@ if df["PVS1"]!=0, df["PM4"]=0
 
 # PM5 -------------------
 # Novel missense change at an amino acid residue where a different missense change determined to be pathogenic has been seen before. (Pathogenic, Moderate)
-# TODO: Need to sync with clinvar, is there another missense in the same AA?
-    # todo need to get gene info in clinvar, or are these variants in another df?
+# TODO: Need to sync with clinvar, is there another missense in the same AA?, need to get gene info in clinvar, or are these variants in another df?
 
 # PP2 -------------------
 # Missense variant in a gene that has a low rate of benign missense variation and in which missense variants are a common
@@ -328,14 +367,7 @@ df["PP2"]=0
 # Multiple lines of computational evidence support a deleterious effect on the gene or gene product (conservation, evolutionary, splicing impact, etc.) (Pathogenic, Supporting)# very strong
 df["PP3"]=0
 # Rule PP3 is disabled if either rule PVS1 or PM4 are triggered, in order to avoid double-counting similar evidence.
-
-# df_simple = df[['HGNC gene', 'HGVS strict genomic (hg38):', 'variant_type', 'HGVS Protein:', 'protein_impact',
-#          'HGVS genomic (hg38):', 'pseudo VCF (hg38):', 'Position in transcript:', 'Position / splice site',
-#          'Position / domain', 'Position tolerance',
-#          'gnomAD exome:', 'gnomAD genome:', 'gnomAD exome (non cancer):',
-#          'gnomAD v4 Genome:', 'gnomAD v4 Exome:',
-#          'dbSNP rsid:', 'Clinvar Germline:', 'hg38 InterVar:', 'GeneBe:',
-#          'CADD phred:', 'MPA score:', 'MPA impact:']]
+# take CADD and MPA
 
 # PP5 ------------------
 # Reputable source recently reports variant as pathogenic, but the evidence is not available to the laboratory to perform an independent evaluation. (Pathogenic, Supporting)
