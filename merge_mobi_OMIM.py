@@ -57,8 +57,6 @@ def get_omim_data_for_gene(gene_symbol, omim2):
     else:
         return None, None, None, None, None
 
-
-
 # Code to concatenate OMIM data -----------
 
 print(f"merged_data shape: {mobi_data.shape}") # merged_data shape: (2406, 55)
@@ -66,17 +64,14 @@ print(f"merged_data shape: {mobi_data.shape}") # merged_data shape: (2406, 55)
 # 1 Group by 'genes' and concatenate the columns into omim2 DataFrame
 omim2 = omim_data.groupby('genes').apply(concatenate_omim_data).apply(pd.Series).reset_index(drop=True)
 omim2.to_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/omim_grouped_by_genes.txt", sep='\t', index=False)
+# omim2 = pd.read_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/omim_grouped_by_genes.txt", sep='\t')
 
 # 2 Apply the function to each gene in mobi_subset2
-
-
-omim2 = pd.read_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/omim_grouped_by_genes.txt", sep='\t')
-
 mobi_data[['genes', 'phenotypeInheritance_mapped', 'phenotype', 'geneMimNumber', 'phenotypeMimNumber']] = mobi_data['HGNC gene'].apply(
     lambda x: pd.Series(get_omim_data_for_gene(x, omim2)))
 print(f"mobi_data shape: {mobi_data.shape}")
 
-# check omim2 works
+# check omim2 works -------------
 gene_name = "PSAP"
 pattern = rf'\b{gene_name}\b'
 filtered_rows = omim2[omim2['genes'].str.contains(pattern, regex=True, na=False)]
@@ -84,16 +79,5 @@ get_omim_data_for_gene(gene_name, omim2)
 # TODO it is not considering the several OMIM rows
 
 # Save -------------------
-
 mobi_data.to_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_with_omim_genes.txt", sep='\t', index=False)
 mobi_data = pd.read_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_with_omim_genes.txt", sep='\t')
-
-
-# DEBUG
-# term="DPYD"
-# mobi_subset = mobi_data[mobi_data['HGNC gene symbol (ID):'].str.contains(term)]
-# omim_subset = omim_data[omim_data['genes'].str.contains(term)]
-# print(mobi_subset[['HGNC gene symbol (ID):', 'HGVS strict genomic (hg38):']])
-# print(omim_subset)
-# omim2 = omim_subset.groupby('genes').apply(concatenate_omim_data).apply(pd.Series).reset_index(drop=True)
-
