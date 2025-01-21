@@ -74,10 +74,3 @@ vcf_data.to_csv(vcf_output_file, sep='\t', index=False)
 vcf_data = pd.read_csv(vcf_output_file, sep='\t')
 
 formatted_entries.to_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/formatted_vcf_entries.txt", index=False, header=False)
-
-
-
-# DP=669: Total of 669 reads at this position.
-# AD=506,163: Of those, 506 reads support the reference allele (C), and 163 reads support the alternate allele (A).
-# DP4=506,0,163,0: 506 reads supporting the reference allele are from the forward strand, and 163 reads supporting the alternate allele are from the forward strand as well (none from the reverse strand).
-

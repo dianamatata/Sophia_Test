@@ -102,11 +102,13 @@ or if the variant id located in a hotspot
 
 ---
 
-### **10. `extract_clinvar_entries.py`**
-**Function**: Take the dataframe with clinvar entries P/LP, and check how many entries are found, to adapt the ACMG
-criteria afterwards
+### **10. [extract_clinvar_entries.py](extract_clinvar_entries.py)`extract_clinvar_entries.py`**
+**Function**: Sync with clinvar website. For a given dbSNP rsid, Take the dataframe with clinvar entries P/LP, and check how many entries are found, to adapt the ACMG
+criteria afterwards. 
 **Input**: 
+- mobi_data dataframe
 **Output**:
+- for instance we get 15 entries clinvar(8P/ 7LP)
 
 ---
 ### **11. [extract_hpo.py](extract_hpo.py)**
