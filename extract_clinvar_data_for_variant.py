@@ -129,6 +129,7 @@ def format_data_after_extraction(df, keys_to_extract=None):
 
     return df
 
+
 def extract_clinvar_window_around_variant(clinvar_dir, chrom, pos, window=None, keys_to_extract=None):
     if window is None:
         window = 50
@@ -136,11 +137,21 @@ def extract_clinvar_window_around_variant(clinvar_dir, chrom, pos, window=None, 
         keys_to_extract = ['CLNVC', 'CLNSIG', 'MC', 'GENEINFO']
 
     clinvar_file = f"{clinvar_dir}clinvar_{chrom}.txt.gz"
-    print("Loading file:", clinvar_file)
+
+    # Extract variant context
     clinvar_subset_data = clinvar_variant_context(clinvar_file, chrom, pos, window)
+
+    # Check if the dataframe is empty
+    if clinvar_subset_data.empty:
+        # print("Warning: No data found for the given variant in the file.")
+        return pd.DataFrame()  # Return an empty dataframe or handle accordingly
+
     # Convert data to string types before applying further processing
     clinvar_subset_data = clinvar_subset_data.apply(lambda x: x.astype(str) if x.dtype != 'O' else x)
+
+    # Format the data after extraction
     clinvar_subset_data = format_data_after_extraction(clinvar_subset_data)
+
     return clinvar_subset_data
 
 
@@ -164,6 +175,11 @@ clinvar_dir = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/clin
 
 clinvar_window_df = extract_clinvar_window_around_variant(clinvar_dir, chrom=4, pos=186709159, window=50)
 clinvar_gene_df = extract_clinvar_gene_of_variant(clinvar_dir, chrom=1, gene_name="SAMD11")
+
+
+# try to handle duplicates in chrom and pos
+duplicates = clinvar_window_df[clinvar_window_df.duplicated(subset=['CHROM', 'POS'], keep=False)]
+print(duplicates)
 
 
 # Observe all the possibilities -------------------
