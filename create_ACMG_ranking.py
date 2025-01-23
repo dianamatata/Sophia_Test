@@ -9,6 +9,7 @@ import re
 # https://varsome.com/about/resources/germline-implementation/#pp5 implementation rules in varsome clinical
 
 # Germline Rules dictionary
+
 Germline_Rules = {
     'Very Strong': 8,
     'Strong': 4,
@@ -117,11 +118,11 @@ def assign_pm2(df, gnomad_col):
     df.loc[(df[gnomad_col] < 0.0001), "PM2"] = 2
     return df
 
-
 # PS1 -------------------
 # Same amino acid change as a previously established pathogenic variant regardless of nucleotide change.
 # chrom=4
 # pos=186708867
+# TODO check it works
 def apply_PS1(da):
     clinvar_dir = "/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/clinvar_chr/"
     da['PS1'] = ""
@@ -156,8 +157,6 @@ def apply_PS1(da):
                     duplicates.groupby(['CHROM', 'POS'])['MC'].transform(lambda x: ','.join(x)).iloc[0]
 
     return da
-
-mobi_data2 = apply_PS1(mobi_data)
 
 # filter data in mobi
 def update_mobi_data(row):
@@ -229,7 +228,6 @@ def update_mobi_data(row):
     # Return updated values as a tuple
     return pd.Series([to_keep, comments], index=['to_keep', 'comments'])
 
-
 # DATA  ----------------
 
 # MOBI data
@@ -238,13 +236,13 @@ mobi_data = mobi_data.drop(columns=["to_check"])
 
 
 # get PVS1
-mobi_data = calculate_pvs1(mobi_data)
 # If at least two distinct LOF variants for the gene are classified as pathogenic/likely pathogenic, this suggests a common mechanism of disease.
+mobi_data = calculate_pvs1(mobi_data)
 mobi_data = process_LoF_pathogenic_counts(mobi_data)
 mobi_data.loc[(mobi_data['LOF_pathogenic_count'] < 2) & (pd.notna(mobi_data['LOF_pathogenic_count'])), 'PVS1'] = 4
 print(type(mobi_data['LOF_pathogenic_count']))
 
-# get "PM2"
+# get PM2
 mobi_data = assign_pm2(mobi_data,'gnomAD v4 Genome:')
 numeric_columns = ['Splice_prediction', 'MPA score:', 'CADD phred:', 'LOF_pathogenic_count']
 for col in numeric_columns:
@@ -253,8 +251,6 @@ mobi_data[['to_keep', 'comments']] = mobi_data.apply(update_mobi_data, axis=1)
 
 # get PS1
 mobi_data2 = apply_PS1(mobi_data)
-
-
 
 mobi_data.to_csv("/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_omim_splice_clinvarentries.txt", index=False, sep='\t')
 mobi_data.to_csv('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/mobi_data_omim_splice_clinvarentries1.tsv', sep='\t', index=False)
@@ -267,9 +263,6 @@ mobi_data.to_csv('/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/m
 # print(mobi_data['Splice_prediction'].value_counts())
 # mobi_data2['PS1'].unique() # empty
 
-
-# mobi_data.columns
-# mobi_data.shape
 
 # TODO: Cross-Check with GnomAD:  Validate this against GnomAD gene constraints by checking the observed/expected LOF ratio (LOF_OE). A value below 0.7555 further supports a strong LOF constraint for the gene.
 
@@ -288,7 +281,7 @@ clinvar_window_df = extract_clinvar_window_around_variant(clinvar_dir, chrom=4, 
 duplicates = clinvar_window_df[clinvar_window_df.duplicated(subset=['CHROM', 'POS'], keep=False)]
 print(duplicates)
 
-# is there another variant in clinvar in same AA? ( we do not have the AA...
+# is there another variant in clinvar in same AA? ( we do not have the AA...)
 
 # PS3 -------------------
 # Well-established in vitro or in vivo functional studies supportive of a damaging effect on the gene or gene product. (Pathogenic, Strong)
@@ -349,7 +342,7 @@ filtered_data = filter_PM1_mutational_hotspot(clinvar_dir, chrom, pos)
 # PM4 applies when in-frame (so change multiple of 3) deletions/insertions or stop-loss variants change the protein length, but not in repeat regions, and does not require NMD.
 df["PM4"]=0
 if df["PVS1"]!=0, df["PM4"]=0
-    # if variant_type = "Frameshift", PVS1, if "in frame", PM4
+# if variant_type = "Frameshift", PVS1, if "in frame", PM4
 
 
 # PM5 -------------------
