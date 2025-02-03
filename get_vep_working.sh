@@ -56,3 +56,21 @@ cd ensembl-vep
 -i /Users/dianaavalos/Desktop/Tertiary_Research_Assignment/patient_variants.vcf \
 -o /Users/dianaavalos/Desktop/Tertiary_Research_Assignment/patients_out.vcf
 
+# we can add Clinvar
+# Compressed VCF file
+curl -O https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz
+# Index file
+curl -O https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz.tbi
+
+./vep --cache --offline --custom file=/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/downloaded_data/clinvar.vcf.gz,short_name=ClinVar,format=vcf,type=exact,coords=0,fields=CLNSIG%CLNREVSTAT%CLNDN \
+--dir_cache /Users/dianaavalos/ensembl-vep/ \
+-i /Users/dianaavalos/Desktop/Tertiary_Research_Assignment/patients_out.vcf \
+-o /Users/dianaavalos/Desktop/Tertiary_Research_Assignment/patients_out2.vcf
+
+./vep --id "1  230710048 230710048 A/G 1" --species homo_sapiens -o /path/to/output/output.txt --cache --offline --assembly GRCh38 --custom file=/path/to/custom_files/clinvar.vcf.gz,short_name=ClinVar,format=vcf,type=exact,coords=0,fields=CLNSIG%CLNREVSTAT%CLNDN
+
+
+
+# TODO: remove in /Users/dianaavalos/ensembl-vep/ the homo sapiens file > 23Gb
+
+
