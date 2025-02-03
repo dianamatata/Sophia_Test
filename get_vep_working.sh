@@ -32,6 +32,7 @@ tar zxvf BioPerl-1.6.924.tar.gz
 echo 'export PERL5LIB=${PERL5LIB}:##PATH_TO##/bioperl-1.6.924' >> ~/.zshrc
 
 cpanm Test::Differences Test::Exception Test::Perl::Critic Archive::Zip PadWalker Error Devel::Cycle Role::Tiny::With Module::Build
+cpanm DBD::mysql
 
 export DYLD_LIBRARY_PATH=/usr/local/mysql/lib/:$DYLD_LIBRARY_PATH # wait
 
@@ -41,26 +42,17 @@ cd ensembl-vep
 git checkout release/113
 perl INSTALL.pl
 
+# manually downloading caches
+# https://ftp.ensembl.org/pub/release-113/variation/indexed_vep_cache/
+cd $HOME/.vep
+# 23G
+curl -O https://ftp.ensembl.org/pub/release-113/variation/indexed_vep_cache/homo_sapiens_vep_113_GRCh38.tar.gz
+tar xzf homo_sapiens_vep_113_GRCh38.tar.gz
 
-# TODO: solve errors .......
+# running VEP
+cd ensembl-vep
+./vep --cache --offline \
+--dir_cache /Users/dianaavalos/ensembl-vep/ \
+-i /Users/dianaavalos/Desktop/Tertiary_Research_Assignment/patient_variants.vcf \
+-o /Users/dianaavalos/Desktop/Tertiary_Research_Assignment/patients_out.vcf
 
-#Test Summary Report
-#-------------------
-#./t/Runner.t                                       (Wstat: 65280 Tests: 80 Failed: 0)
-#  Non-zero exit status: 255
-#  Parse errors: No plan found in TAP output
-#Files=42, Tests=1808, 137 wallclock secs ( 0.29 usr  0.16 sys + 124.87 cusr  9.53 csys = 134.85 CPU)
-#Result: FAIL
-#Failed 1/42 test programs. 0/1808 subtests failed.
-
-
-# get Bio::DB::BigFile
-#wget https://github.com/ucscGenomeBrowser/kent/archive/v335_base.tar.gz
-#tar xzf v335_base.tar.gz
-
-
-
-# errors
-cpanm Bio::EnsEMBL::Utils::Logger
-cpanm Bio::EnsEMBL::IO
-cpanm Bio::EnsEMBL::VEP::Config
