@@ -1,5 +1,19 @@
 # Sophia_Test
 
+SOPHiA GENETICS job application– 4-Day Assignment
+
+
+Assignment Overview:
+The proposed task consists of:
+
+Annotating the variants in the attached file.
+Classifying them according to their pathogenicity.
+Providing a report on the findings.
+The goal of this task is to assess the candidate’s knowledge in genomics and computational skills, including:
+
+Evaluating variant pathogenicity.
+Clinically interpreting the variant.
+
 ## Data Processing Workflow
 
 ### **1. [format_vcf.py](format_vcf.py)** 
