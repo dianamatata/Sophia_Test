@@ -214,8 +214,10 @@ This means I need to find other ways to retrieve the data, with MPA and Gnomad
 ---
 
 ### 4. Handling Missing Data
+
 After running the script, I noticed that some variants failed to be extracted. A log file containing these failed variants was generated, and I reran the process. Some missing variants were successfully retrieved, but others were not. Upon manual inspection, I found that some entries were missing from Mobidetails, either because the variant or transcript failed to load. This is frustrating, as these could potentially be rare variants.
 TO DO: understand why fo we have so many missing variants, we were expecting 27 with missing transcripts in mobidetails but actually there are 324..
+
 ---
 
 By following this workflow, we aim to extract and annotate as much variant data as possible, while addressing the limitations of the current tools and processes. The TODOs will be addressed in future work to improve the robustness of the system.
