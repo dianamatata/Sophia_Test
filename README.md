@@ -133,7 +133,7 @@ it browses the website 'https://hpo.jax.org/browse/term/{hpo_id}' to extract the
 - '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/hpo_summary.txt' with ['HPO_ID', 'Term_Name']
 - '/Users/dianaavalos/Desktop/Tertiary_Research_Assignment/data/hpo_terms_and_gene_associations.csv' with ['HPO_ID', 'Term_Name', 'Gene_Associations':]
 
-The code is not inside a function and needs to be run as it is.
+### The code is not inside a function and needs to be run as it is.
 ---
 
 ### **12. [check_gene_in_hpo.py](check_gene_in_hpo.py) **
