@@ -110,7 +110,7 @@ TO DO rerun and check if some OMIM data is missing
 **Function**:  extract_clinvar_window_around_variant to check if it is a hotspot, extract_clinvar_gene_of_variant
 For ACMG crieria, we need to know for instance if "missenses" are a common mechanism of disease in the gene,
 or if the variant id located in a hotspot
-# TODO implement systematic check in function 
+### TODO implement systematic check in function 
 **Input**: 
 **Output**:
 
