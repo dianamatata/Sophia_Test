@@ -202,7 +202,7 @@ Mobidetails allows us to extract a variety of data at once, including:
 
 ### 3. Challenges with the API
 I attempted to run VEP from the command line but had some issues building it, check : [get_vep_working.sh](get_vep_working.sh)`get_vep_working.sh`
-TO DO: solve this issue
+TO DO: Issue solved. integrate it with mobidetails now
 
 I attempted to run the Mobidetails API, but the documentation was minimal and I ended up spending a lot of time trying to implement it. To address this, I designed a web scraping Python script (`extract_mobidetails_info.py`).
 
