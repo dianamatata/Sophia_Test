@@ -240,17 +240,6 @@ To enhance the project, we could consider the following improvements:
 
 - **Fix Mobidetails API**: Resolve issues with the Mobidetails API to ensure reliable data extraction and improve overall functionality.
 - **Manage to integrate VEP**: Resolve the issues to run VEP on our vcf. Indeed, there are 324 variants that Mobidetails did not manage to get (some have unavailable transcript but I believe part of it is my code?)
-
-`get_vep_working.sh`: error faced:
-
-#Test Summary Report
-#-------------------
-#./t/Runner.t                                       (Wstat: 65280 Tests: 80 Failed: 0)
-#Non-zero exit status: 255
-#Parse errors: No plan found in TAP output
-#Files=42, Tests=1808, 137 wallclock secs ( 0.29 usr  0.16 sys + 124.87 cusr  9.53 csys = 134.85 CPU)
-#Result: FAIL
-#Failed 1/42 test programs. 0/1808 subtests failed.
 - **Integrate GERP RS**: Incorporate GERP (Genomic Evolutionary Rate Profiling) scores to provide insights into the conservation of variants across species.
 - **Sync with gnomAD**: Connect with the gnomAD database to obtain ancestry-specific frequencies and counts for heterozygous and homozygous variants.
 - **Integrate GTEx expression data**: GTEx data enables us to understand in which tissue the gene is expressed. If there is no OMIM phenotype associated, it can help understand the gene product
